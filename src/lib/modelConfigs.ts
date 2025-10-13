@@ -27,6 +27,12 @@ interface TipSection {
 interface ModelConfig {
   id: string;
   displayName: string;
+  outputType: 'video' | 'image';
+  description: string;
+  bannerImage: string;
+  // THE FIX: Use a dedicated property for the card's hover video
+  cardVideo: string; 
+  tags: string[];
   params: ModelParameter[];
   tips?: TipSection[];
 }
@@ -35,6 +41,11 @@ export const modelConfigs: { [key: string]: ModelConfig } = {
   "veo-3-fast": {
     id: "veo-3-fast",
     displayName: "VEO 3 Fast",
+        description: "Use Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles.",
+    bannerImage: "/banners/wan-banner.jpg", // A wide, cinematic image
+     cardVideo: "/videos/model-2.mp4", // This is the video that will play on hover    // A more focused, square-like image
+    tags: ["new", "lora", "personalization"],
+outputType: 'video',
     params: [
       {
         name: "image",
@@ -83,6 +94,11 @@ export const modelConfigs: { [key: string]: ModelConfig } = {
   "seedance-1-pro": {
     id: "seedance-1-pro",
     displayName: "Seedance-1 Pro",
+           description: "Use Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles.",
+    bannerImage: "/banners/wan-banner.jpg", // A wide, cinematic image
+     cardVideo: "/videos/model-2.mp4", // This is the video that will play on hover
+    tags: ["new", "lora", "personalization"],
+    outputType: 'video',
     params: [
       /*{
         name: "image",
@@ -159,6 +175,11 @@ export const modelConfigs: { [key: string]: ModelConfig } = {
   "wan-2.2": {
     id: "wan-2.2",
     displayName: "WAN 2.2 14B",
+           description: "Use Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles.",
+    bannerImage: "/banners/wan-banner.jpg", // A wide, cinematic image
+     cardVideo: "/videos/model-2.mp4", // This is the video that will play on hover
+    tags: ["new", "lora", "personalization"],
+    outputType: 'video',
     params: [
       {
         name: "image",
@@ -214,5 +235,48 @@ export const modelConfigs: { [key: string]: ModelConfig } = {
       }
     ]
   },
+    // --- NEW IMAGE MODEL CONFIGURATION ---
+  "flux-kontext-pro": {
+    id: "flux-kontext-pro",
+    displayName: "FLUX Kontext Pro",
+           description: "Use Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles.",
+    bannerImage: "/banners/wan-banner.jpg", // A wide, cinematic image
+     cardVideo: "/videos/model-2.mp4", // This is the video that will play on hover
+    tags: ["new", "lora", "personalization"],
+    outputType: 'image', // Specify output type
+    params: [
+            {
+        name: "input_image", 
+        label: "Image",
+        type: "image",
+        defaultValue: null,
+      },
+      {
+        name: "prompt",
+        label: "Prompt",
+        type: "textarea",
+        defaultValue: "Make the shoes and the full set white.",
+      },
+      {
+        name: "aspect_ratio",
+        label: "Aspect Ratio",
+        type: "dropdown",
+        defaultValue: "match_input_image",
+        options: ["match_input_image","1:1", "16:9", "9:16", "4:3", "3:4"],
+      },
+    ],
+    tips: [
+      {
+        title: "📸 Creating with FLUX",
+        content: [
+          {
+            subtitle: "Mastering the Prompt",
+            text: "FLUX excels at interpreting detailed, photorealistic prompts. Describe the subject, setting, lighting, and camera angle for best results."
+          }
+        ]
+      }
+    ]
+  },
+
 
 };

@@ -1,4 +1,3 @@
-// src/app/generator/page.tsx
 "use client";
 
 import { useState, Suspense, useEffect, ChangeEvent } from 'react';
@@ -6,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSearchParams } from 'next/navigation';
 import { modelConfigs } from '@/lib/modelConfigs';
 
+// Shadcn UI Component Imports
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,10 +17,32 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TipsSection } from "@/components/TipsSection";
 import { Separator } from "@/components/ui/separator";
-import { Wand2, Frown, Video } from 'lucide-react';
 
-// Define a type for the parameters state for better type safety
+// Lucide React Icon Imports
+import { Wand2, Frown, Video, Image as ImageIcon } from 'lucide-react';
+
+// Define the possible types for parameters state
 type ParamValues = string | number | null;
+// Define the possible types for the output media
+type OutputType = 'video' | 'image' | null;
+
+/**
+ * Helper function to determine if the output is a video or image based on the URL extension.
+ * @param url The URL of the generated media.
+ * @returns 'video', 'image', or null if the type is unknown.
+ */
+const getOutputTypeFromUrl = (url: string): OutputType => {
+  if (!url) return null;
+  // Use URL constructor for robust parsing, even with query parameters
+  const pathname = new URL(url).pathname;
+  const extension = pathname.split('.').pop()?.toLowerCase();
+  
+  if (extension === 'mp4') return 'video';
+  if (['png', 'jpg', 'jpeg', 'webp', 'avif'].includes(extension || '')) return 'image';
+  
+  // Fallback if no known extension is found
+  return null;
+};
 
 function GeneratorComponent() {
   const { user, credits, setCredits } = useAuth();
@@ -28,23 +50,29 @@ function GeneratorComponent() {
   const modelId = searchParams.get('model') || 'veo-3-fast';
   const currentModelConfig = modelConfigs[modelId];
 
-  // THE FIX: State is now strongly typed.
+  // State Management
   const [params, setParams] = useState<{[key: string]: ParamValues}>({});
-  const [videoUrl, setVideoUrl] = useState('');
+  const [outputUrl, setOutputUrl] = useState('');
+  const [detectedOutputType, setDetectedOutputType] = useState<OutputType>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  // Effect to reset state when the model is changed via URL
   useEffect(() => {
     if (!currentModelConfig) return;
-    // THE FIX: Type is inferred correctly now, no 'any' needed.
     const defaultParams: {[key: string]: ParamValues} = {};
     currentModelConfig.params.forEach(param => { defaultParams[param.name] = param.defaultValue; });
     setParams(defaultParams);
-    setImagePreview(null); setVideoUrl(''); setError(''); setGenerating(false);
+    
+    // Reset all outputs and previews
+    setImagePreview(null);
+    setOutputUrl('');
+    setError('');
+    setGenerating(false);
+    setDetectedOutputType(null);
   }, [currentModelConfig]);
 
-  // THE FIX: 'value' parameter is now strongly typed.
   const handleParamChange = (name: string, value: string | number) => { setParams(prev => ({ ...prev, [name]: value })); };
   
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -60,32 +88,40 @@ function GeneratorComponent() {
     }
   };
 
-  const handleGenerateVideo = async () => {
+  const handleGenerate = async () => {
     if (!user || credits <= 0) {
-      setError(user ? "You don't have enough credits." : "Please sign in to generate videos.");
+      setError(user ? "You don't have enough credits." : "Please sign in.");
       return;
     }
-    setGenerating(true); setError(''); setVideoUrl('');
+    setGenerating(true);
+    setError('');
+    setOutputUrl('');
+    setDetectedOutputType(null);
 
     try {
-     // const response = await fetch('https://aivideogenerator-production.up.railway.app/generate-video', {
-      const response = await fetch('http://0.0.0.0:8000/generate-video', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+
+           // const apiURL = 'https://aivideogenerator-production.up.railway.app/generate-video';
+      const apiUrl = `http://0.0.0.0:8000/generate-video`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.uid, model_id: modelId, params }),
       });
       if (!response.ok) {
-        throw new Error((await response.json()).detail || 'Failed to generate video');
+        throw new Error((await response.json()).detail || 'Failed to generate');
       }
       const data = await response.json();
 
-      if (data.video_url && Array.isArray(data.video_url) && data.video_url.length > 0) {
-        setVideoUrl(data.video_url[0]);
+      if (data.output_urls && Array.isArray(data.output_urls) && data.output_urls.length > 0) {
+        const newUrl = data.output_urls[0];
+        setOutputUrl(newUrl);
+        // Detect and set the output type from the resulting URL
+        setDetectedOutputType(getOutputTypeFromUrl(newUrl));
       } else {
-        throw new Error("The model did not return a valid video output.");
+        throw new Error("The model did not return a valid output.");
       }
-
       setCredits(credits - 1);
-    } catch (err) { // THE FIX: Removed ': any' and safely access the message.
+    } catch (err) {
       setError((err as Error).message);
     } finally {
       setGenerating(false);
@@ -104,7 +140,8 @@ function GeneratorComponent() {
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
       <section className="text-center max-w-4xl mx-auto mb-10">
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center justify-center gap-3">
-          <Video className="h-8 w-8"/> Generating with {currentModelConfig.displayName}
+          <Wand2 className="h-8 w-8"/>
+          Generating with {currentModelConfig.displayName}
         </h1>
       </section>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
@@ -123,7 +160,9 @@ function GeneratorComponent() {
               ))}
             </CardContent>
             <CardFooter className="flex-col items-start gap-4">
-              <Button onClick={handleGenerateVideo} disabled={generating} size="lg" className="w-full"><Wand2 className="mr-2 h-5 w-5" /> Generate Video ({credits} Credits)</Button>
+              <Button onClick={handleGenerate} disabled={generating} size="lg" className="w-full">
+                <Wand2 className="mr-2 h-5 w-5" /> Generate Media ({credits} Credits)
+              </Button>
               {error && <p className="text-red-500 text-sm flex items-center"><Frown className="mr-2 h-4 w-4" />{error}</p>}
             </CardFooter>
           </Card>
@@ -134,7 +173,7 @@ function GeneratorComponent() {
               <CardTitle className="flex justify-between items-center">
                 Result
                 <Badge variant={generating ? "secondary" : "default"}>
-                  {generating ? "Generating..." : (videoUrl ? "Complete" : "Example")}
+                  {generating ? "Generating..." : (outputUrl ? "Complete" : "Example")}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -145,17 +184,23 @@ function GeneratorComponent() {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                     <p className="mt-4">Rendering your masterpiece...</p>
                   </div>
-                ) : videoUrl ? (
-                  <video src={videoUrl} controls autoPlay loop className="w-full h-full rounded-md" />
+                ) : outputUrl ? (
+                  <>
+                    {detectedOutputType === 'video' && (
+                      <video src={outputUrl} controls autoPlay loop className="w-full h-full rounded-md" />
+                    )}
+                    {detectedOutputType === 'image' && (
+                      <img src={outputUrl} alt="Generated result" className="object-contain w-full h-full rounded-md" />
+                    )}
+                    {detectedOutputType === null && (
+                        <div className="text-center text-muted-foreground p-4">
+                            <p>Unsupported output format.</p>
+                            <a href={outputUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline mt-2 block">View Raw Output</a>
+                        </div>
+                    )}
+                  </>
                 ) : (
-                  <video
-                    src="/warrior.mp4"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
+                  <video src="/warrior.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover" />
                 )}
               </AspectRatio>
             </CardContent>
@@ -170,7 +215,12 @@ function GeneratorComponent() {
 
 export default function GeneratorPage() {
     return (
-        <Suspense fallback={<div className="container mx-auto p-8 text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div><p className="mt-4 text-muted-foreground">Loading Model...</p></div>}>
+        <Suspense fallback={
+          <div className="container mx-auto p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading Model...</p>
+          </div>
+        }>
             <GeneratorComponent />
         </Suspense>
     )

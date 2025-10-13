@@ -12,52 +12,38 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between pl-4 md:pl-62">
+         
+      <div className="container flex h-20 items-center justify-between px-4 md:px-6">
+        <Link href="/" className="flex items-center space-x-2 text-2xl font-bold">
+          {/* Using a text logo as per the mockup */}
+          <span>reelzila</span>
+        </Link>
         
-        <div className="flex items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <Film className="h-6 w-6" />
-            <span className="font-bold">VX AI</span>
-          </Link>
-        </div>
+        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <Link href="/explore" className="hover:text-neutral-300 transition-colors">Explore</Link>
+          <Link href="/pricing" className="hover:text-neutral-300 transition-colors">Pricing</Link>
+          <Link href="/about" className="hover:text-neutral-300 transition-colors">About Us</Link>
+          <Link href="/blog" className="hover:text-neutral-300 transition-colors">Blog</Link>
+          <Link href="/contact" className="hover:text-neutral-300 transition-colors">Contact Us</Link>
+        </nav>
         
-        <div className="flex items-center space-x-2 md:space-x-4">
-          {!loading && (
-            <>
-              {user ? (
-                <>
-                  <Badge variant="outline" className="hidden sm:inline-flex">Credits: {credits}</Badge>
-                  <Link href="/pricing">
-                    <Button size="sm">
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Get Credits
-                    </Button>
-                  </Link>
-                  <Button variant="ghost" size="icon" onClick={() => auth.signOut()}>
-                    <LogOut className="h-4 w-4" />
-                    <span className="sr-only">Sign Out</span>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link href="/signin">
-                    <Button variant="ghost">
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link href="/signup">
-                    <Button>
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Sign Up
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </>
+        <div className="flex items-center space-x-4">
+          {/* User Icon or Login Buttons */}
+          {user ? (
+             <Link href="/account">
+                {/* Replace with a User Icon */}
+                <div className="h-6 w-6 rounded-full border border-white" />
+             </Link>
+          ) : (
+            <Link href="/signin">
+              <Button variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-black">
+                Sign In
+              </Button>
+            </Link>
           )}
         </div>
       </div>
+
     </header>
   );
 }

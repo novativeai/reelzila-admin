@@ -1,15 +1,11 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import "./globals.css";
+import { Inter } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "VX AI | AI Video Generator",
-  description: "Generate stunning videos from text prompts using the power of AI.",
+export const metadata = {
+  title: "Reelzila Admin",
 };
 
 export default function RootLayout({
@@ -18,13 +14,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={inter.className}>
         <AuthProvider>
-          <Navbar />
-          <main className="container mx-auto px-4 py-8">{children}</main>
+          {children}
         </AuthProvider>
-        <Footer/>
       </body>
     </html>
   );
