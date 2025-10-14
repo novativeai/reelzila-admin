@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { Loader2 } from "lucide-react";
+import { CsvUpload } from "@/components/admin/CsvUpload";
+import { Separator } from "@/components/ui/separator";
 
 const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
   <button type="submit" className="bg-yellow-300 text-black rounded-full w-8 h-8 flex items-center justify-center font-bold text-2xl hover:bg-yellow-400 transition-colors disabled:bg-neutral-500" disabled={isLoading}>
@@ -13,21 +15,10 @@ const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
   </button>
 );
 
-interface UserRecord {
-  id: string,
-  email: string;
-  plan?: string;
-  credits: number;
-  isAdmin?: boolean; // optional — add if your API returns it
-  generationCount?: number
-  // Add more fields if needed, like role, status, etc.
-}
-
-
 function DashboardContent() {
   const { makeRequest } = useAdminApi();
   const [stats, setStats] = useState({ userCount: 0 });
-  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -39,12 +30,15 @@ function DashboardContent() {
       setUsers(usersData);
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
+      // In a real app, you might show a toast notification here
+      // For now, we just log the error. The AdminAuthWrapper handles redirection.
     } finally {
       setIsLoading(false);
     }
   };
   
   useEffect(() => {
+    // The useAdminApi hook ensures 'user' is available, so we can call this directly.
     fetchData();
   }, [makeRequest]);
 
@@ -62,7 +56,7 @@ function DashboardContent() {
         });
         alert('User created!');
         form.reset();
-        fetchData(); // Refresh all data
+        fetchData(); // Refresh all data, including stats and user list
     } catch (error) {
         alert(`Failed to create user: ${(error as Error).message}`);
     } finally {
@@ -89,6 +83,7 @@ function DashboardContent() {
             <p className="text-neutral-400 mb-2">Number of users</p>
             <p className="text-8xl font-bold">{stats.userCount}</p>
         </div>
+
         <div className="max-w-4xl mx-auto space-y-4">
             <h2 className="text-2xl font-semibold mb-6">User List</h2>
             {users.map((u) => (
@@ -106,6 +101,13 @@ function DashboardContent() {
                 <button className="text-sm text-neutral-400 hover:text-white">See more</button>
             </div>
         </div>
+
+        <Separator className="my-16 md:my-24 bg-neutral-800" />
+        
+        <div className="max-w-4xl mx-auto">
+          <CsvUpload />
+        </div>
+        
         <div className="max-w-4xl mx-auto mt-24">
              <h2 className="text-2xl font-semibold mb-6">Create Account</h2>
              <form onSubmit={handleCreateUser} className="flex items-end gap-8">

@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, Loader2 } from "lucide-react";
+import { Edit2, Trash2, Loader2, Download } from "lucide-react";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { EditTransactionPopup, TransactionData } from "@/components/admin/EditTransactionPopup";
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
+import { DateInput } from "@/components/ui/date-input";
+import { generateTransactionPDF } from "@/lib/Generator";
 
 // --- Type Definitions for this page ---
 interface BillingInfo {
@@ -28,9 +30,10 @@ interface UserProfile {
   activePlan?: string;
 }
 
+// This type matches the data received from the backend's GET request
 interface Transaction {
   id: string;
-  createdAt: string;
+  createdAt: string; // The backend formats this as 'dd/mm/yyyy'
   amount: number;
   type: string;
   status: 'paid' | 'pending' | 'failed';
@@ -53,6 +56,7 @@ function UserDetailContent() {
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<TransactionData | null>(null);
+  const [newTransactionDate, setNewTransactionDate] = useState('');
 
   const fetchData = async () => {
     if (!userId) return;
@@ -69,9 +73,6 @@ function UserDetailContent() {
     fetchData();
   }, [userId, makeRequest]);
 
-  // --- THE FIX IS HERE ---
-  // The 'body' parameter is now typed as 'object', which is more general and
-  // correctly accepts both anonymous objects and specific interface types like TransactionData.
   const handleFormSubmit = async (e: FormEvent<HTMLFormElement>, formName: string, endpoint: string, method: 'POST' | 'PUT', body: object) => {
     e.preventDefault();
     setIsSubmitting(formName);
@@ -110,14 +111,19 @@ function UserDetailContent() {
 
   const handleUpdateTransaction = async (data: TransactionData) => {
     const eventStub = { preventDefault: () => {} } as FormEvent<HTMLFormElement>;
-    // This call is now valid because TransactionData is assignable to 'object'.
     await handleFormSubmit(eventStub, 'Transaction', `/admin/transactions/${userId}/${data.id}`, 'PUT', data);
     setIsEditDialogOpen(false);
   };
 
   const inputStyles = "bg-transparent border-0 border-b border-neutral-700 rounded-none px-0 focus-visible:ring-0";
 
-  if (isLoading || !profile) return <div className="bg-black text-white min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10" /></div>;
+  if (isLoading || !profile) {
+    return (
+      <div className="bg-black text-white min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin h-10 w-10" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -165,8 +171,33 @@ function UserDetailContent() {
                   {transactions.length > 0 ? transactions.map(t => (
                       <div key={t.id} className="border-b border-neutral-800 py-4 grid grid-cols-5 items-center gap-4 group">
                           <p className="col-span-2">{t.createdAt}</p>
-                          <div className="col-span-2"><p>{t.amount}$ {t.type} <Badge variant={t.status === 'paid' ? 'default' : 'secondary'} className={t.status === 'paid' ? 'bg-green-800 text-green-200' : 'bg-yellow-800 text-yellow-200'}>{t.status}</Badge></p><a href="#" className="text-sm text-neutral-400 hover:text-white underline">Download PDF</a></div>
-                          <div className="flex gap-4 justify-self-end opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => openEditPopup(t)}><Edit2 className="w-4 h-4 text-neutral-500 hover:text-white" /></button><button onClick={() => handleDeleteTransaction(t.id)}><Trash2 className="w-4 h-4 text-neutral-500 hover:text-red-500" /></button></div>
+                          <div className="col-span-2">
+                            <p>{t.amount}$ {t.type} <Badge variant={t.status === 'paid' ? 'default' : 'secondary'} className={t.status === 'paid' ? 'bg-green-800 text-green-200' : 'bg-yellow-800 text-yellow-200'}>{t.status}</Badge></p>
+                            
+                            {/* --- THE FIX IS HERE --- */}
+                            <button 
+                                onClick={() => {
+                                    // Create a new object that matches the TransactionData type for the PDF generator
+                                    const pdfData: TransactionData = {
+                                        id: t.id,
+                                        date: t.createdAt, // Map `createdAt` to `date`
+                                        amount: t.amount,
+                                        type: t.type,
+                                        status: t.status
+                                    };
+                                    // Pass the correctly shaped object to the function
+                                    generateTransactionPDF(pdfData, profile.name, profile.email);
+                                }} 
+                                className="text-sm text-neutral-400 hover:text-white underline flex items-center gap-1 mt-1"
+                            >
+                                <Download className="w-3 h-3"/> Download PDF
+                            </button>
+
+                          </div>
+                          <div className="flex gap-4 justify-self-end opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => openEditPopup(t)}><Edit2 className="w-4 h-4 text-neutral-500 hover:text-white" /></button>
+                            <button onClick={() => handleDeleteTransaction(t.id)}><Trash2 className="w-4 h-4 text-neutral-500 hover:text-red-500" /></button>
+                          </div>
                       </div>
                   )) : <p className="text-neutral-500">No transactions found for this user.</p>}
               </div>
@@ -174,8 +205,18 @@ function UserDetailContent() {
           
           <div>
               <h2 className="text-2xl font-semibold mb-6">Add a transaction</h2>
-              <form onSubmit={(e) => handleFormSubmit(e, 'Add Transaction', `/admin/transactions/${userId}`, 'POST', { date: (e.currentTarget.elements.namedItem('date') as HTMLInputElement).value, amount: parseInt((e.currentTarget.elements.namedItem('amount') as HTMLInputElement).value), type: (e.currentTarget.elements.namedItem('type') as HTMLInputElement).value, status: (e.currentTarget.elements.namedItem('status') as HTMLInputElement).value })} className="flex items-end gap-4 flex-wrap">
-                <div className="grid gap-2 flex-grow"><label className="text-sm">Date (dd/mm/yyyy)</label><Input name="date" className={inputStyles} required/></div>
+              <form onSubmit={(e) => {
+                  const formData = new FormData(e.currentTarget);
+                  const body = {
+                      date: newTransactionDate,
+                      amount: parseInt(formData.get('amount') as string),
+                      type: formData.get('type') as string,
+                      status: formData.get('status') as string,
+                  };
+                  handleFormSubmit(e, 'Add Transaction', `/admin/transactions/${userId}`, 'POST', body);
+                  setNewTransactionDate('');
+              }} className="flex items-end gap-4 flex-wrap">
+                <div className="grid gap-2 flex-grow"><label className="text-sm">Date</label><DateInput name="date" value={newTransactionDate} onChange={setNewTransactionDate} className={inputStyles} required/></div>
                 <div className="grid gap-2 flex-grow"><label className="text-sm">Amount</label><Input name="amount" type="number" className={inputStyles} required/></div>
                 <div className="grid gap-2 flex-grow"><label className="text-sm">Type</label><Select name="type" defaultValue="Purchase"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Purchase">Purchase</SelectItem><SelectItem value="Subscription">Subscription</SelectItem></SelectContent></Select></div>
                 <div className="grid gap-2 flex-grow"><label className="text-sm">Status</label><Select name="status" defaultValue="paid"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent></Select></div>
