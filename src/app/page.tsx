@@ -13,10 +13,21 @@ const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
   </button>
 );
 
+interface UserRecord {
+  id: string,
+  email: string;
+  plan?: string;
+  credits: number;
+  isAdmin?: boolean; // optional — add if your API returns it
+  generationCount?: number
+  // Add more fields if needed, like role, status, etc.
+}
+
+
 function DashboardContent() {
   const { makeRequest } = useAdminApi();
   const [stats, setStats] = useState({ userCount: 0 });
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
 

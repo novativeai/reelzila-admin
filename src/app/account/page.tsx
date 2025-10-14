@@ -3,7 +3,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot, orderBy, doc } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy, doc, Timestamp } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -55,17 +55,35 @@ function UsageStats() {
 }
 
 function BillingHistory() {
-  const { user } = useAuth();
-  const [history, setHistory] = useState<any[]>([]);
+    interface BillingRecord {
+  id: string;
+  amount: number;
+  status: 'paid' | 'pending' | 'failed';
+  createdAt: Timestamp; // or use `Timestamp` from "firebase/firestore"
+  receiptUrl?: string;
+}
+const { user } = useAuth();
+const [history, setHistory] = useState<BillingRecord[]>([]);
 
-  useEffect(() => {
-    if (!user) return;
-    const q = query(collection(db, "users", user.uid, "payments"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      setHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => unsub();
-  }, [user]);
+
+useEffect(() => {
+  if (!user) return;
+
+  const q = query(
+    collection(db, "users", user.uid, "payments"),
+    orderBy("createdAt", "desc")
+  );
+
+  const unsub = onSnapshot(q, (snapshot) => {
+    const records = snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() } as BillingRecord)
+    );
+    setHistory(records);
+  });
+
+  return () => unsub();
+}, [user]);
+
 
   // THE FIX: Production-ready empty state
   if (history.length === 0) {
