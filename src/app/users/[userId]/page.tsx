@@ -11,6 +11,31 @@ import { useAdminApi } from "@/hooks/useAdminApi";
 import { EditTransactionPopup, TransactionData } from "@/components/admin/EditTransactionPopup";
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
 
+// --- Type Definitions for this page ---
+interface BillingInfo {
+  nameOnCard?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  validTill?: string;
+}
+
+interface UserProfile {
+  name: string;
+  email: string;
+  billingInfo?: BillingInfo;
+  credits?: number;
+  activePlan?: string;
+}
+
+interface Transaction {
+  id: string;
+  createdAt: string;
+  amount: number;
+  type: string;
+  status: 'paid' | 'pending' | 'failed';
+}
+
 const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
     <button type="submit" className="bg-yellow-300 text-black rounded-full w-8 h-8 flex items-center justify-center font-bold text-2xl hover:bg-yellow-400 transition-colors disabled:bg-neutral-500" disabled={isLoading}>
       {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "+"}
@@ -18,13 +43,14 @@ const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
 );
 
 function UserDetailContent() {
-  const { userId } = useParams();
+  const { userId } = useParams<{ userId: string }>();
   const { makeRequest } = useAdminApi();
-  const [profile, setProfile] = useState<any>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
-
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<TransactionData | null>(null);
 
@@ -43,7 +69,10 @@ function UserDetailContent() {
     fetchData();
   }, [userId, makeRequest]);
 
-  const handleFormSubmit = async (e: FormEvent<HTMLFormElement>, formName: string, endpoint: string, method: 'POST' | 'PUT', body: any) => {
+  // --- THE FIX IS HERE ---
+  // The 'body' parameter is now typed as 'object', which is more general and
+  // correctly accepts both anonymous objects and specific interface types like TransactionData.
+  const handleFormSubmit = async (e: FormEvent<HTMLFormElement>, formName: string, endpoint: string, method: 'POST' | 'PUT', body: object) => {
     e.preventDefault();
     setIsSubmitting(formName);
     try {
@@ -67,13 +96,22 @@ function UserDetailContent() {
     }
   };
 
-  const openEditPopup = (transaction: any) => {
-    setEditingTransaction(transaction);
+  const openEditPopup = (transaction: Transaction) => {
+    const transactionToEdit: TransactionData = {
+      id: transaction.id,
+      date: transaction.createdAt,
+      amount: transaction.amount,
+      type: transaction.type,
+      status: transaction.status,
+    };
+    setEditingTransaction(transactionToEdit);
     setIsEditDialogOpen(true);
   };
 
   const handleUpdateTransaction = async (data: TransactionData) => {
-    await handleFormSubmit({ preventDefault: () => {} } as any, 'Transaction', `/admin/transactions/${userId}/${data.id}`, 'PUT', data);
+    const eventStub = { preventDefault: () => {} } as FormEvent<HTMLFormElement>;
+    // This call is now valid because TransactionData is assignable to 'object'.
+    await handleFormSubmit(eventStub, 'Transaction', `/admin/transactions/${userId}/${data.id}`, 'PUT', data);
     setIsEditDialogOpen(false);
   };
 
