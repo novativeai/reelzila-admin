@@ -9,16 +9,28 @@ import { Loader2 } from "lucide-react";
 import { CsvUpload } from "@/components/admin/CsvUpload";
 import { Separator } from "@/components/ui/separator";
 
+
+interface UserRecord {
+  id: string,
+  email: string;
+  plan?: string;
+  credits: number;
+  isAdmin?: boolean; // optional — add if your API returns it
+  generationCount?: number
+  // Add more fields if needed, like role, status, etc.
+}
+
 const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
   <button type="submit" className="bg-yellow-300 text-black rounded-full w-8 h-8 flex items-center justify-center font-bold text-2xl hover:bg-yellow-400 transition-colors disabled:bg-neutral-500" disabled={isLoading}>
     {isLoading ? <Loader2 className="animate-spin h-4 w-4" /> : "+"}
   </button>
 );
 
+
 function DashboardContent() {
   const { makeRequest } = useAdminApi();
   const [stats, setStats] = useState({ userCount: 0 });
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
 
