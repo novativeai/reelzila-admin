@@ -87,6 +87,34 @@ function UserDetailContent() {
     }
   };
 
+  const handleResetPassword = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const newPassword = (e.currentTarget.elements.namedItem('newPassword') as HTMLInputElement).value;
+    
+    if (!newPassword || newPassword.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to reset this user\'s password?')) {
+      return;
+    }
+
+    setIsSubmitting('Reset Password');
+    try {
+      await makeRequest(`/admin/users/${userId}/reset-password`, {
+        method: 'POST',
+        body: JSON.stringify({ newPassword })
+      });
+      alert('Password reset successfully!');
+      (e.target as HTMLFormElement).reset();
+    } catch (error) {
+      alert(`Failed to reset password: ${(error as Error).message}`);
+    } finally {
+      setIsSubmitting(null);
+    }
+  };
+
   const handleDeleteTransaction = async (transId: string) => {
     if(!confirm('Are you sure you want to delete this transaction?')) return;
     try {
@@ -161,8 +189,21 @@ function UserDetailContent() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
-            <form onSubmit={(e) => handleFormSubmit(e, 'Gift Credits', `/admin/users/${userId}/gift-credits`, 'POST', { amount: parseInt((e.currentTarget.elements.namedItem('amount') as HTMLInputElement).value) })} className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm">Gift Credits</label><Input name="amount" placeholder="eg: 10" type="number" className={inputStyles} /></div><PlusButton isLoading={isSubmitting === 'Gift Credits'} /></form>
-            <form className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm">Reset Password</label><Input placeholder="New Password" type="password" className={inputStyles} /></div><PlusButton /></form>
+            <form onSubmit={(e) => handleFormSubmit(e, 'Gift Credits', `/admin/users/${userId}/gift-credits`, 'POST', { amount: parseInt((e.currentTarget.elements.namedItem('amount') as HTMLInputElement).value) })} className="flex items-end gap-4">
+              <div className="grid gap-2 w-full">
+                <label className="text-sm">Gift Credits</label>
+                <Input name="amount" placeholder="eg: 10" type="number" className={inputStyles} />
+              </div>
+              <PlusButton isLoading={isSubmitting === 'Gift Credits'} />
+            </form>
+            
+            <form onSubmit={handleResetPassword} className="flex items-end gap-4">
+              <div className="grid gap-2 w-full">
+                <label className="text-sm">Reset Password</label>
+                <Input name="newPassword" placeholder="New Password (min 6 chars)" type="password" className={inputStyles} required minLength={6} />
+              </div>
+              <PlusButton isLoading={isSubmitting === 'Reset Password'} />
+            </form>
           </div>
 
           <div>
@@ -174,18 +215,15 @@ function UserDetailContent() {
                           <div className="col-span-2">
                             <p>{t.amount}$ {t.type} <Badge variant={t.status === 'paid' ? 'default' : 'secondary'} className={t.status === 'paid' ? 'bg-green-800 text-green-200' : 'bg-yellow-800 text-yellow-200'}>{t.status}</Badge></p>
                             
-                            {/* --- THE FIX IS HERE --- */}
                             <button 
                                 onClick={() => {
-                                    // Create a new object that matches the TransactionData type for the PDF generator
                                     const pdfData: TransactionData = {
                                         id: t.id,
-                                        date: t.createdAt, // Map `createdAt` to `date`
+                                        date: t.createdAt,
                                         amount: t.amount,
                                         type: t.type,
                                         status: t.status
                                     };
-                                    // Pass the correctly shaped object to the function
                                     generateTransactionPDF(pdfData, profile.name, profile.email);
                                 }} 
                                 className="text-sm text-neutral-400 hover:text-white underline flex items-center gap-1 mt-1"
