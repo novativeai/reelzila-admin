@@ -89,44 +89,59 @@ function DashboardContent() {
   return (
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto py-16 px-4">
-        <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter mb-16">Admin Dashboard</h1>
-        
-        <div className="text-center my-16">
-            <p className="text-neutral-400 mb-2">Number of users</p>
-            <p className="text-8xl font-bold">{stats.userCount}</p>
+        <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter mb-16 bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">Admin Dashboard</h1>
+
+        <div className="text-center my-16 p-12 rounded-3xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 shadow-2xl">
+            <p className="text-neutral-400 mb-4 text-sm uppercase tracking-wider">Total Users</p>
+            <p className="text-8xl font-bold bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">{stats.userCount}</p>
         </div>
 
         <div className="max-w-4xl mx-auto space-y-4">
-            <h2 className="text-2xl font-semibold mb-6">User List</h2>
-            {users.map((u) => (
-                <Link key={u.id} href={`/users/${u.id}`}>
-                    <div className="border-b border-neutral-800 py-4 flex justify-between items-center hover:bg-neutral-900 transition-colors cursor-pointer">
-                        <p className="font-semibold">{u.email}</p>
-                        <div className="text-right">
-                            <p className="font-semibold">{u.plan}</p>
-                            <p className="text-sm text-neutral-400">{u.generationCount} Generations</p>
-                        </div>
-                    </div>
-                </Link>
-            ))}
+            <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">
+              <span className="w-1 h-8 bg-yellow-400 rounded-full"></span>
+              User List
+            </h2>
+            <div className="space-y-3">
+              {users.map((u) => (
+                  <Link key={u.id} href={`/users/${u.id}`}>
+                      <div className="border border-neutral-800 rounded-2xl p-6 flex justify-between items-center hover:bg-neutral-900 hover:border-neutral-700 transition-all cursor-pointer group shadow-lg hover:shadow-xl hover:scale-[1.01]">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center font-bold text-black text-sm">
+                              {u.email.charAt(0).toUpperCase()}
+                            </div>
+                            <p className="font-semibold text-lg">{u.email}</p>
+                          </div>
+                          <div className="text-right">
+                              <p className="font-bold text-yellow-400 text-lg">{u.plan}</p>
+                              <p className="text-sm text-neutral-500 group-hover:text-neutral-400 transition-colors">{u.generationCount} Generations</p>
+                          </div>
+                      </div>
+                  </Link>
+              ))}
+            </div>
             <div className="text-center pt-8">
-                <button className="text-sm text-neutral-400 hover:text-white">See more</button>
+                <button className="text-sm text-neutral-400 hover:text-yellow-400 transition-colors font-medium">See more</button>
             </div>
         </div>
 
         <Separator className="my-16 md:my-24 bg-neutral-800" />
-        
+
         <div className="max-w-4xl mx-auto">
           <CsvUpload />
         </div>
-        
+
         <div className="max-w-4xl mx-auto mt-24">
-             <h2 className="text-2xl font-semibold mb-6">Create Account</h2>
-             <form onSubmit={handleCreateUser} className="flex items-end gap-8">
-                <div className="grid gap-2 w-full"><label className="text-sm text-neutral-400">Mail</label><Input name="email" placeholder="eg: john.smith@gmail.com" className={inputStyles} required/></div>
-                <div className="grid gap-2 w-full"><label className="text-sm text-neutral-400">Password</label><Input name="password" type="password" placeholder="********" className={inputStyles} required/></div>
-                <PlusButton isLoading={isCreating} />
-             </form>
+             <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">
+               <span className="w-1 h-8 bg-yellow-400 rounded-full"></span>
+               Create Account
+             </h2>
+             <div className="border border-neutral-800 rounded-2xl p-8 bg-gradient-to-br from-neutral-900 to-neutral-950 shadow-xl">
+               <form onSubmit={handleCreateUser} className="flex items-end gap-8">
+                  <div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Mail</label><Input name="email" placeholder="eg: john.smith@gmail.com" className={inputStyles} required/></div>
+                  <div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Password</label><Input name="password" type="password" placeholder="********" className={inputStyles} required/></div>
+                  <PlusButton isLoading={isCreating} />
+               </form>
+             </div>
         </div>
       </div>
     </div>
