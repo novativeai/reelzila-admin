@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+// FIX: Import Timestamp and FieldValue types from firestore
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  Timestamp,
+  FieldValue,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +18,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
 
+// FIX: Replace 'any' with the specific Firestore types
 interface MarketplaceProduct {
   sellerId: string;
   sellerName: string;
@@ -23,8 +31,8 @@ interface MarketplaceProduct {
   hasAudio: boolean;
   useCases: string[];
   status: string;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: Timestamp | FieldValue;
+  updatedAt: Timestamp | FieldValue;
   sold: number;
   prompt?: string;
   generationId?: string;
