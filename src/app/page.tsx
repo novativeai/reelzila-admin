@@ -12,12 +12,11 @@ import { Separator } from "@/components/ui/separator";
 
 interface UserRecord {
   id: string,
-  email: string;
+  email: string; // Note: API might be returning null for this
   plan?: string;
   credits: number;
-  isAdmin?: boolean; // optional — add if your API returns it
+  isAdmin?: boolean;
   generationCount?: number
-  // Add more fields if needed, like role, status, etc.
 }
 
 const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
@@ -42,15 +41,12 @@ function DashboardContent() {
       setUsers(usersData);
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
-      // In a real app, you might show a toast notification here
-      // For now, we just log the error. The AdminAuthWrapper handles redirection.
     } finally {
       setIsLoading(false);
     }
   };
   
   useEffect(() => {
-    // The useAdminApi hook ensures 'user' is available, so we can call this directly.
     fetchData();
   }, [makeRequest]);
 
@@ -68,7 +64,7 @@ function DashboardContent() {
         });
         alert('User created!');
         form.reset();
-        fetchData(); // Refresh all data, including stats and user list
+        fetchData();
     } catch (error) {
         alert(`Failed to create user: ${(error as Error).message}`);
     } finally {
@@ -89,7 +85,12 @@ function DashboardContent() {
   return (
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto py-16 px-4">
-        <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter mb-16 bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">Admin Dashboard</h1>
+        <div className="flex items-center justify-between mb-16">
+          <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">Admin Dashboard</h1>
+          <Link href="/marketplace" className="px-6 py-3 bg-yellow-300 hover:bg-yellow-400 text-black font-bold rounded-lg transition-colors">
+            Marketplace
+          </Link>
+        </div>
 
         <div className="text-center my-16 p-12 rounded-3xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 shadow-2xl">
             <p className="text-neutral-400 mb-4 text-sm uppercase tracking-wider">Total Users</p>
@@ -107,9 +108,11 @@ function DashboardContent() {
                       <div className="border border-neutral-800 rounded-2xl p-6 flex justify-between items-center hover:bg-neutral-900 hover:border-neutral-700 transition-all cursor-pointer group shadow-lg hover:shadow-xl hover:scale-[1.01]">
                           <div className="flex items-center gap-4">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center font-bold text-black text-sm">
-                              {u.email.charAt(0).toUpperCase()}
+                              {/* FIX: Check if email exists before calling charAt */}
+                              {u.email ? u.email.charAt(0).toUpperCase() : '?'}
                             </div>
-                            <p className="font-semibold text-lg">{u.email}</p>
+                            {/* FIX: Provide a fallback if email is null/undefined */}
+                            <p className="font-semibold text-lg">{u.email || "No Email Provided"}</p>
                           </div>
                           <div className="text-right">
                               <p className="font-bold text-yellow-400 text-lg">{u.plan}</p>
