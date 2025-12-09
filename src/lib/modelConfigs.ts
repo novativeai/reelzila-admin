@@ -38,9 +38,63 @@ interface ModelConfig {
 }
 
 export const modelConfigs: { [key: string]: ModelConfig } = {
-  "veo-3-fast": {
-    id: "veo-3-fast",
-    displayName: "VEO 3 Fast",
+  "kling-2.5": {
+    id: "kling-2.5",
+    displayName: "Kling 2.5 Turbo Pro",
+    description: "Kuaishou&apos;s flagship video generation model featuring industry-leading motion quality and temporal consistency.",
+    bannerImage: "/banners/wan-banner.jpg",
+    cardVideo: "/videos/model-2.mp4",
+    tags: ["top-rated", "motion", "cinematic"],
+    outputType: 'video',
+    params: [
+      {
+        name: "prompt",
+        label: "Prompt",
+        type: "textarea",
+        defaultValue: "A cinematic shot of a woman walking through a neon-lit city at night.",
+      },
+      {
+        name: "start_image",
+        label: "Starting Image (optional)",
+        type: "image",
+        defaultValue: null,
+      },
+      {
+        name: "negative_prompt",
+        label: "Negative Prompt",
+        type: "textarea",
+        defaultValue: "",
+      },
+      {
+        name: "duration",
+        label: "Duration (seconds)",
+        type: "dropdown",
+        defaultValue: "5",
+        options: ["5", "10"],
+      },
+      {
+        name: "aspect_ratio",
+        label: "Aspect Ratio",
+        type: "dropdown",
+        defaultValue: "16:9",
+        options: ["16:9", "9:16", "1:1"],
+      },
+    ],
+    tips: [
+      {
+        title: "Prompting Guide",
+        content: [
+          {
+            subtitle: "Cinematic Language",
+            text: "Kling 2.5 excels with cinematic terminology. Use terms like dolly shot, tracking shot, and specific lens references for professional results."
+          }
+        ]
+      }
+    ]
+  },
+  "veo-3.1": {
+    id: "veo-3.1",
+    displayName: "VEO 3.1",
         description: "Use Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles.",
     bannerImage: "/banners/wan-banner.jpg", // A wide, cinematic image
      cardVideo: "/videos/model-2.mp4", // This is the video that will play on hover    // A more focused, square-like image
@@ -235,43 +289,51 @@ outputType: 'video',
       }
     ]
   },
-    // --- NEW IMAGE MODEL CONFIGURATION ---
-  "flux-kontext-pro": {
-    id: "flux-kontext-pro",
-    displayName: "FLUX Kontext Pro",
-           description: "Use Wan 2.2 text to image LoRA trainer. Fine-tune Wan 2.2 for subjects and styles.",
-    bannerImage: "/banners/wan-banner.jpg", // A wide, cinematic image
-     cardVideo: "/videos/model-2.mp4", // This is the video that will play on hover
-    tags: ["new", "lora", "personalization"],
-    outputType: 'image', // Specify output type
+    // --- IMAGE MODEL CONFIGURATION ---
+  "flux-1.1-pro-ultra": {
+    id: "flux-1.1-pro-ultra",
+    displayName: "FLUX 1.1 Pro Ultra",
+    description: "Black Forest Labs flagship text-to-image model generating ultra high-resolution images up to 4 megapixels.",
+    bannerImage: "/banners/wan-banner.jpg",
+    cardVideo: "/videos/model-2.mp4",
+    tags: ["image", "4MP", "ultra-fast"],
+    outputType: 'image',
     params: [
-            {
-        name: "input_image", 
-        label: "Image",
-        type: "image",
-        defaultValue: null,
-      },
       {
         name: "prompt",
         label: "Prompt",
         type: "textarea",
-        defaultValue: "Make the shoes and the full set white.",
+        defaultValue: "A stunning portrait of a woman with emerald eyes, soft golden hour lighting, professional photography.",
       },
       {
         name: "aspect_ratio",
         label: "Aspect Ratio",
         type: "dropdown",
-        defaultValue: "match_input_image",
-        options: ["match_input_image","1:1", "16:9", "9:16", "4:3", "3:4"],
+        defaultValue: "16:9",
+        options: ["21:9", "16:9", "4:3", "3:2", "1:1", "2:3", "3:4", "9:16", "9:21"],
+      },
+      {
+        name: "output_format",
+        label: "Output Format",
+        type: "dropdown",
+        defaultValue: "jpg",
+        options: ["jpg", "png"],
+      },
+      {
+        name: "raw",
+        label: "Raw Mode",
+        type: "dropdown",
+        defaultValue: "false",
+        options: ["true", "false"],
       },
     ],
     tips: [
       {
-        title: "📸 Creating with FLUX",
+        title: "Prompting Guide",
         content: [
           {
-            subtitle: "Mastering the Prompt",
-            text: "FLUX excels at interpreting detailed, photorealistic prompts. Describe the subject, setting, lighting, and camera angle for best results."
+            subtitle: "Detailed Descriptions",
+            text: "FLUX 1.1 Pro Ultra excels with detailed, descriptive prompts. Include specific details about lighting, composition, style, and atmosphere."
           }
         ]
       }
