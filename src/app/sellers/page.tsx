@@ -7,7 +7,11 @@ import { useAdminApi } from "@/hooks/useAdminApi";
 import { Loader2, ArrowLeft, CheckCircle, AlertCircle, Users, Ban, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
+interface FirestoreTimestamp {
+  seconds: number;
+  nanoseconds: number;
+}
 
 interface Seller {
   userId: string;
@@ -15,9 +19,9 @@ interface Seller {
   displayName: string;
   status: "unverified" | "verified" | "suspended" | "banned";
   paypalEmail?: string;
-  verificationDate?: any;
+  verificationDate?: FirestoreTimestamp | string;
   suspensionReason?: string;
-  suspendedAt?: any;
+  suspendedAt?: FirestoreTimestamp | string;
 }
 
 interface SellersStats {

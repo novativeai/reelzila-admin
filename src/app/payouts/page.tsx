@@ -8,15 +8,20 @@ import { Loader2, ArrowLeft, CheckCircle, XCircle, Clock, Euro, RefreshCw, Pause
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+interface FirestoreTimestamp {
+  seconds: number;
+  nanoseconds: number;
+}
+
 interface PayoutRequest {
   id: string;
   amount: number;
   paypalEmail: string;
   status: "pending" | "approved" | "rejected" | "completed";
   userId: string;
-  createdAt: any;
-  approvedAt?: any;
-  rejectedAt?: any;
+  createdAt: FirestoreTimestamp | string;
+  approvedAt?: FirestoreTimestamp | string;
+  rejectedAt?: FirestoreTimestamp | string;
   docPath?: string;
 }
 
@@ -30,7 +35,7 @@ function PayoutsContent() {
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(10000); // 10 seconds
+  const refreshInterval = 10000; // 10 seconds
 
   const fetchPayouts = async () => {
     try {
