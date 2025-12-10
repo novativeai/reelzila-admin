@@ -8,15 +8,19 @@ import {
   serverTimestamp,
   Timestamp,
   FieldValue,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
+import { useToast } from "@/components/ui/toast";
 
 // FIX: Replace 'any' with the specific Firestore types
 interface MarketplaceProduct {
@@ -38,16 +42,27 @@ interface MarketplaceProduct {
   generationId?: string;
 }
 
+interface UserData {
+  id: string;
+  email: string;
+  name?: string;
+  displayName?: string;
+}
+
 function MarketplaceContent() {
+  const { addToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState("");
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   const [formData, setFormData] = useState({
     videoUrl: "",
     thumbnailUrl: "",
-    sellerName: "",
+    email: "",
     title: "",
     description: "",
     price: "",
@@ -86,6 +101,59 @@ function MarketplaceContent() {
     }
   };
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const email = e.target.value;
+    setUserEmail(email);
+    setFormData((prev) => ({
+      ...prev,
+      email: email,
+    }));
+    setSelectedUser(null);
+  };
+
+  const lookupUserByEmail = async () => {
+    if (!userEmail.trim()) {
+      addToast("Please enter an email address", "error");
+      return;
+    }
+
+    setIsLoadingUser(true);
+    try {
+      const q = query(collection(db, "users"), where("email", "==", userEmail.toLowerCase()));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        addToast("No user attached to the mail", "error");
+        setSelectedUser(null);
+        setFormData((prev) => ({
+          ...prev,
+          sellerId: "admin_" + Date.now(),
+        }));
+        return;
+      }
+
+      const userData = snapshot.docs[0];
+      const user: UserData = {
+        id: userData.id,
+        email: userData.data().email || userEmail,
+        displayName: userData.data().displayName || userData.data().name,
+        name: userData.data().name,
+      };
+
+      setSelectedUser(user);
+      setFormData((prev) => ({
+        ...prev,
+        sellerId: user.id,
+      }));
+      addToast(`User found: ${user.displayName || user.email}`, "success");
+    } catch (err) {
+      addToast("Error looking up user", "error");
+      console.error(err);
+    } finally {
+      setIsLoadingUser(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -97,8 +165,8 @@ function MarketplaceContent() {
       if (!formData.videoUrl.trim()) {
         throw new Error("Video URL is required");
       }
-      if (!formData.sellerName.trim()) {
-        throw new Error("Seller name is required");
+      if (!selectedUser) {
+        throw new Error("User email is required and must be validated");
       }
       if (!formData.title.trim()) {
         throw new Error("Product title is required");
@@ -116,10 +184,13 @@ function MarketplaceContent() {
         throw new Error("At least one tag is required");
       }
 
+      // Get seller name from selected user
+      const sellerName = selectedUser.displayName || selectedUser.name || selectedUser.email;
+
       // Create product data
       const productData: MarketplaceProduct = {
         sellerId: formData.sellerId,
-        sellerName: formData.sellerName,
+        sellerName: sellerName,
         title: formData.title,
         description: formData.description,
         videoUrl: formData.videoUrl,
@@ -149,7 +220,7 @@ function MarketplaceContent() {
       setFormData({
         videoUrl: "",
         thumbnailUrl: "",
-        sellerName: "",
+        email: "",
         title: "",
         description: "",
         price: "",
@@ -159,12 +230,17 @@ function MarketplaceContent() {
         prompt: "",
         sellerId: "admin_" + Date.now(),
       });
+      setUserEmail("");
+      setSelectedUser(null);
       setVideoPreview(null);
       setSuccess(true);
+      addToast("✓ Product successfully added to marketplace!", "success");
 
       setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create listing");
+      const errorMessage = err instanceof Error ? err.message : "Failed to create listing";
+      setError(errorMessage);
+      addToast(errorMessage, "error");
       console.error(err);
     } finally {
       setIsSubmitting(false);
@@ -267,17 +343,38 @@ function MarketplaceContent() {
                 </p>
               </div>
 
-              {/* Seller Name */}
+              {/* Email Lookup */}
               <div>
-                <label className={labelStyles}>Seller Name *</label>
-                <Input
-                  name="sellerName"
-                  value={formData.sellerName}
-                  onChange={handleInputChange}
-                  placeholder="Creator or Brand Name"
-                  className={inputStyles}
-                  required
-                />
+                <label className={labelStyles}>Seller Email *</label>
+                <div className="flex gap-2">
+                  <Input
+                    name="email"
+                    type="email"
+                    value={userEmail}
+                    onChange={handleEmailChange}
+                    placeholder="seller@example.com"
+                    className={inputStyles}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    onClick={lookupUserByEmail}
+                    disabled={isLoadingUser || !userEmail.trim()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 whitespace-nowrap"
+                  >
+                    {isLoadingUser ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Lookup"
+                    )}
+                  </Button>
+                </div>
+                {selectedUser && (
+                  <div className="flex items-center gap-2 mt-2 p-2 bg-green-900/20 border border-green-700 rounded text-green-200 text-sm">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>{selectedUser.displayName || selectedUser.name || selectedUser.email}</span>
+                  </div>
+                )}
               </div>
 
               <Separator className="bg-neutral-800" />

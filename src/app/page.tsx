@@ -87,9 +87,17 @@ function DashboardContent() {
       <div className="container mx-auto py-16 px-4">
         <div className="flex items-center justify-between mb-16">
           <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">Admin Dashboard</h1>
-          <Link href="/marketplace" className="px-6 py-3 bg-yellow-300 hover:bg-yellow-400 text-black font-bold rounded-lg transition-colors">
-            Marketplace
-          </Link>
+          <div className="flex gap-3 flex-wrap">
+            <Link href="/payouts" className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors">
+              Seller Payouts
+            </Link>
+            <Link href="/sellers" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
+              Manage Sellers
+            </Link>
+            <Link href="/marketplace" className="px-6 py-3 bg-yellow-300 hover:bg-yellow-400 text-black font-bold rounded-lg transition-colors">
+              Marketplace
+            </Link>
+          </div>
         </div>
 
         <div className="text-center my-16 p-12 rounded-3xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 shadow-2xl">
