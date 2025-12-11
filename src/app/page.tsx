@@ -84,72 +84,69 @@ function DashboardContent() {
 
   return (
     <div className="bg-black text-white min-h-screen">
-      <div className="container mx-auto py-16 px-4">
-        <div className="flex items-center justify-between mb-16">
-          <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">Admin Dashboard</h1>
-          <div className="flex gap-3 flex-wrap">
-            <Link href="/payouts" className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors">
+      <div className="container mx-auto py-12 px-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-12">
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">Admin Dashboard</h1>
+          <div className="flex gap-2 flex-wrap">
+            <Link href="/payouts" className="px-4 py-2 bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700/50 transition-colors">
               Seller Payouts
             </Link>
-            <Link href="/sellers" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
+            <Link href="/sellers" className="px-4 py-2 bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700/50 transition-colors">
               Manage Sellers
             </Link>
-            <Link href="/marketplace" className="px-6 py-3 bg-yellow-300 hover:bg-yellow-400 text-black font-bold rounded-lg transition-colors">
+            <Link href="/marketplace" className="px-4 py-2 bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700/50 transition-colors">
               Marketplace
             </Link>
           </div>
         </div>
 
-        <div className="text-center my-16 p-12 rounded-3xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 shadow-2xl">
-            <p className="text-neutral-400 mb-4 text-sm uppercase tracking-wider">Total Users</p>
-            <p className="text-8xl font-bold bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">{stats.userCount}</p>
+        {/* Stats Card */}
+        <div className="text-center mb-12 p-8 rounded-xl bg-neutral-900/50 border border-neutral-800/50">
+            <p className="text-neutral-500 mb-2 text-xs uppercase tracking-widest">Total Users</p>
+            <p className="text-5xl font-semibold text-white">{stats.userCount}</p>
         </div>
 
-        <div className="max-w-4xl mx-auto space-y-4">
-            <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">
-              <span className="w-1 h-8 bg-yellow-400 rounded-full"></span>
-              User List
-            </h2>
-            <div className="space-y-3">
+        {/* User List */}
+        <div className="max-w-4xl mx-auto space-y-4 mb-12">
+            <h2 className="text-lg font-medium mb-4 text-neutral-300">User List</h2>
+            <div className="space-y-2">
               {users.map((u) => (
                   <Link key={u.id} href={`/users/${u.id}`}>
-                      <div className="border border-neutral-800 rounded-2xl p-6 flex justify-between items-center hover:bg-neutral-900 hover:border-neutral-700 transition-all cursor-pointer group shadow-lg hover:shadow-xl hover:scale-[1.01]">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center font-bold text-black text-sm">
-                              {/* FIX: Check if email exists before calling charAt */}
+                      <div className="border border-neutral-800/50 rounded-lg p-4 flex justify-between items-center hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all cursor-pointer group">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center font-medium text-neutral-300 text-sm">
                               {u.email ? u.email.charAt(0).toUpperCase() : '?'}
                             </div>
-                            {/* FIX: Provide a fallback if email is null/undefined */}
-                            <p className="font-semibold text-lg">{u.email || "No Email Provided"}</p>
+                            <p className="font-medium text-sm text-neutral-200">{u.email || "No Email Provided"}</p>
                           </div>
                           <div className="text-right">
-                              <p className="font-bold text-yellow-400 text-lg">{u.plan}</p>
-                              <p className="text-sm text-neutral-500 group-hover:text-neutral-400 transition-colors">{u.generationCount} Generations</p>
+                              <p className="text-sm text-neutral-400">{u.plan}</p>
+                              <p className="text-xs text-neutral-600">{u.generationCount} Generations</p>
                           </div>
                       </div>
                   </Link>
               ))}
             </div>
-            <div className="text-center pt-8">
-                <button className="text-sm text-neutral-400 hover:text-yellow-400 transition-colors font-medium">See more</button>
+            <div className="text-center pt-4">
+                <button className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">See more</button>
             </div>
         </div>
 
-        <Separator className="my-16 md:my-24 bg-neutral-800" />
+        <Separator className="my-12 bg-neutral-800/50" />
 
-        <div className="max-w-4xl mx-auto">
+        {/* CSV Upload */}
+        <div className="max-w-4xl mx-auto mb-12">
           <CsvUpload />
         </div>
 
-        <div className="max-w-4xl mx-auto mt-24">
-             <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">
-               <span className="w-1 h-8 bg-yellow-400 rounded-full"></span>
-               Create Account
-             </h2>
-             <div className="border border-neutral-800 rounded-2xl p-8 bg-gradient-to-br from-neutral-900 to-neutral-950 shadow-xl">
-               <form onSubmit={handleCreateUser} className="flex items-end gap-8">
-                  <div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Mail</label><Input name="email" placeholder="eg: john.smith@gmail.com" className={inputStyles} required/></div>
-                  <div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Password</label><Input name="password" type="password" placeholder="********" className={inputStyles} required/></div>
+        {/* Create Account */}
+        <div className="max-w-4xl mx-auto">
+             <h2 className="text-lg font-medium mb-4 text-neutral-300">Create Account</h2>
+             <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
+               <form onSubmit={handleCreateUser} className="flex items-end gap-6">
+                  <div className="grid gap-2 w-full"><label className="text-xs text-neutral-500 font-medium">Mail</label><Input name="email" placeholder="eg: john.smith@gmail.com" className={inputStyles} required/></div>
+                  <div className="grid gap-2 w-full"><label className="text-xs text-neutral-500 font-medium">Password</label><Input name="password" type="password" placeholder="********" className={inputStyles} required/></div>
                   <PlusButton isLoading={isCreating} />
                </form>
              </div>

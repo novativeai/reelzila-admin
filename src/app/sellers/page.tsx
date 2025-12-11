@@ -158,54 +158,54 @@ function SellersContent() {
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto py-16 px-4">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-16">
-          <Link href="/" className="hover:bg-neutral-800 p-2 rounded-lg transition-colors">
-            <ArrowLeft className="w-6 h-6" />
+        <div className="flex items-center gap-4 mb-12">
+          <Link href="/" className="hover:bg-neutral-800/50 p-2 rounded-lg transition-colors">
+            <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-6xl md:text-7xl font-extrabold tracking-tighter bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">
             Seller Management
           </h1>
         </div>
 
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
-            <Card className="p-6 border-neutral-700 bg-neutral-950">
-              <p className="text-sm text-neutral-500 mb-2">Total Sellers</p>
-              <p className="text-3xl font-bold">{stats.count}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
+              <p className="text-xs text-neutral-500 mb-2">Total Sellers</p>
+              <p className="text-2xl font-semibold text-white">{stats.count}</p>
             </Card>
-            <Card className="p-6 border-neutral-700 bg-neutral-950">
-              <p className="text-sm text-neutral-500 mb-2 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
+            <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
+              <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
+                <CheckCircle className="w-3 h-3 text-green-500/70" />
                 Verified
               </p>
-              <p className="text-3xl font-bold text-green-400">{stats.verified}</p>
+              <p className="text-2xl font-semibold text-neutral-200">{stats.verified}</p>
             </Card>
-            <Card className="p-6 border-neutral-700 bg-neutral-950">
-              <p className="text-sm text-neutral-500 mb-2 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-400" />
+            <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
+              <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
+                <AlertCircle className="w-3 h-3 text-yellow-500/70" />
                 Unverified
               </p>
-              <p className="text-3xl font-bold text-yellow-400">{stats.unverified}</p>
+              <p className="text-2xl font-semibold text-neutral-200">{stats.unverified}</p>
             </Card>
-            <Card className="p-6 border-neutral-700 bg-neutral-950">
-              <p className="text-sm text-neutral-500 mb-2 flex items-center gap-2">
-                <Ban className="w-4 h-4 text-red-400" />
+            <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
+              <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
+                <Ban className="w-3 h-3 text-red-500/70" />
                 Suspended
               </p>
-              <p className="text-3xl font-bold text-red-400">{stats.suspended}</p>
+              <p className="text-2xl font-semibold text-neutral-200">{stats.suspended}</p>
             </Card>
           </div>
         )}
 
         {/* Filter Buttons */}
-        <div className="flex gap-3 mb-8 flex-wrap">
+        <div className="flex gap-2 mb-8 flex-wrap">
           {(["all", "verified", "unverified", "suspended"] as const).map((f) => (
             <Button
               key={f}
               onClick={() => setFilter(f)}
               variant={filter === f ? "default" : "outline"}
-              className={filter === f ? "bg-blue-600 hover:bg-blue-700" : "border-neutral-700 text-neutral-300 hover:text-white"}
+              className={filter === f ? "bg-neutral-700 hover:bg-neutral-600 text-sm" : "border-neutral-700/50 text-neutral-400 hover:text-white text-sm"}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </Button>
@@ -213,15 +213,15 @@ function SellersContent() {
         </div>
 
         {/* Sellers List */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredSellers.length === 0 ? (
-            <Card className="p-12 text-center border-neutral-700 bg-neutral-950">
-              <Users className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-              <p className="text-neutral-400 text-lg">No sellers found</p>
+            <Card className="p-10 text-center border-neutral-800/50 bg-neutral-900/30">
+              <Users className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+              <p className="text-neutral-500 text-sm">No sellers found</p>
             </Card>
           ) : (
             filteredSellers.map((seller) => (
-              <Card key={seller.userId} className="p-6 border-neutral-700 bg-neutral-950/50 hover:bg-neutral-900/50 transition-colors">
+              <Card key={seller.userId} className="p-5 border-neutral-800/50 bg-neutral-900/30 hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
@@ -246,7 +246,7 @@ function SellersContent() {
                       <Button
                         onClick={() => handleVerifySeller(seller.userId)}
                         disabled={actioningId === seller.userId}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 text-sm"
+                        className="bg-neutral-700 hover:bg-neutral-600 text-white px-3 py-1 text-sm"
                       >
                         {actioningId === seller.userId ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -266,7 +266,7 @@ function SellersContent() {
                           setSuspendModalOpen(true);
                         }}
                         disabled={actioningId === seller.userId || suspendModalOpen}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-sm"
+                        className="bg-neutral-800 hover:bg-red-900/50 text-neutral-300 hover:text-red-300 px-3 py-1 text-sm border border-neutral-700/50"
                       >
                         {actioningId === seller.userId ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -283,7 +283,7 @@ function SellersContent() {
                       <Button
                         onClick={() => handleUnsuspendSeller(seller.userId)}
                         disabled={actioningId === seller.userId}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm"
+                        className="bg-neutral-700 hover:bg-neutral-600 text-white px-3 py-1 text-sm"
                       >
                         {actioningId === seller.userId ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -305,9 +305,9 @@ function SellersContent() {
 
       {/* Suspension Modal */}
       {suspendModalOpen && selectedSellerId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6 border-neutral-700 bg-neutral-950">
-            <h2 className="text-xl font-bold mb-4">Suspend Seller Account</h2>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md p-6 border-neutral-800/50 bg-neutral-900">
+            <h2 className="text-lg font-semibold mb-4 text-white">Suspend Seller Account</h2>
             <p className="text-sm text-neutral-400 mb-4">
               Please provide a reason for suspending this seller account
             </p>
@@ -333,7 +333,7 @@ function SellersContent() {
               <Button
                 onClick={() => handleSuspendSeller(selectedSellerId)}
                 disabled={!suspendReason.trim() || actioningId === selectedSellerId}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                className="flex-1 bg-neutral-200 hover:bg-white text-black"
               >
                 {actioningId === selectedSellerId ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

@@ -164,48 +164,48 @@ function PayoutsContent() {
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto py-16 px-4">
         {/* Header */}
-        <div className="flex items-center justify-between gap-4 mb-16">
+        <div className="flex items-center justify-between gap-4 mb-12">
           <div className="flex items-center gap-4">
-            <Link href="/" className="hover:bg-neutral-800 p-2 rounded-lg transition-colors">
-              <ArrowLeft className="w-6 h-6" />
+            <Link href="/" className="hover:bg-neutral-800/50 p-2 rounded-lg transition-colors">
+              <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-6xl md:text-7xl font-extrabold tracking-tighter bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">
               Seller Payouts
             </h1>
           </div>
 
           {/* Refresh Controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               onClick={() => fetchPayouts()}
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 flex items-center gap-2"
+              className="bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-200 px-4 py-2 flex items-center gap-2 text-sm border border-neutral-700/50"
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              Refresh Now
+              Refresh
             </Button>
 
             <Button
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`${
                 autoRefresh
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-neutral-700 hover:bg-neutral-600"
-              } text-white px-4 py-2 flex items-center gap-2`}
+                  ? "bg-neutral-700/50 text-neutral-200"
+                  : "bg-neutral-800/30 text-neutral-400"
+              } hover:bg-neutral-700/50 px-4 py-2 flex items-center gap-2 text-sm border border-neutral-700/50`}
             >
               {autoRefresh ? (
                 <>
                   <Clock className="w-4 h-4" />
-                  Auto-Refresh On
+                  Auto On
                 </>
               ) : (
                 <>
                   <Pause className="w-4 h-4" />
-                  Auto-Refresh Off
+                  Auto Off
                 </>
               )}
             </Button>
@@ -236,26 +236,26 @@ function PayoutsContent() {
         )}
 
         {/* Pending Payouts Section */}
-        <div className="mb-16">
-          <div className="flex items-center gap-3 mb-8">
-            <Clock className="w-6 h-6 text-yellow-400" />
-            <h2 className="text-3xl font-bold">Pending Approval</h2>
-            <span className="ml-auto px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-full font-bold">
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <Clock className="w-5 h-5 text-neutral-400" />
+            <h2 className="text-xl font-semibold text-white">Pending Approval</h2>
+            <span className="ml-auto px-3 py-1 bg-neutral-800/50 text-neutral-300 rounded-full text-sm font-medium">
               {pendingPayouts.length}
             </span>
           </div>
 
           {pendingPayouts.length === 0 ? (
-            <Card className="p-12 text-center border-neutral-700 bg-neutral-950">
-              <Euro className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-              <p className="text-neutral-400 text-lg">No pending payouts</p>
+            <Card className="p-10 text-center border-neutral-800/50 bg-neutral-900/30">
+              <Euro className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+              <p className="text-neutral-500 text-sm">No pending payouts</p>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {pendingPayouts.map((payout) => (
                 <Card
                   key={payout.id}
-                  className="p-6 border-neutral-700 bg-neutral-950/50 hover:bg-neutral-900/50 transition-colors"
+                  className="p-5 border-neutral-800/50 bg-neutral-900/30 hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -266,18 +266,18 @@ function PayoutsContent() {
                         </div>
                         <div>
                           <p className="text-sm text-neutral-500 mb-1">Amount</p>
-                          <p className="text-2xl font-bold text-green-400">€{payout.amount.toFixed(2)}</p>
+                          <p className="text-xl font-semibold text-neutral-200">€{payout.amount.toFixed(2)}</p>
                         </div>
                       </div>
                       <p className="text-xs text-neutral-500">
                         User ID: {payout.userId?.substring(0, 12)}...
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 ml-4">
+                    <div className="flex items-center gap-2 ml-4">
                       <Button
                         onClick={() => handleApprovePayout(payout)}
                         disabled={approvingId === payout.id}
-                        className="bg-green-600 hover:bg-green-700 text-white px-6"
+                        className="bg-neutral-700 hover:bg-neutral-600 text-white px-4 text-sm"
                       >
                         {approvingId === payout.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -288,7 +288,7 @@ function PayoutsContent() {
                       <Button
                         onClick={() => handleRejectPayout(payout)}
                         disabled={rejectingId === payout.id}
-                        className="bg-red-600 hover:bg-red-700 text-white px-6"
+                        className="bg-neutral-800 hover:bg-red-900/50 text-neutral-300 hover:text-red-300 px-4 text-sm border border-neutral-700/50"
                       >
                         {rejectingId === payout.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -305,26 +305,26 @@ function PayoutsContent() {
         </div>
 
         {/* History Section */}
-        <div className="mb-16">
-          <div className="flex items-center gap-3 mb-8">
-            <CheckCircle className="w-6 h-6 text-green-400" />
-            <h2 className="text-3xl font-bold">History</h2>
-            <span className="ml-auto px-4 py-2 bg-neutral-800 text-neutral-400 rounded-full font-bold">
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <CheckCircle className="w-5 h-5 text-neutral-400" />
+            <h2 className="text-xl font-semibold text-white">History</h2>
+            <span className="ml-auto px-3 py-1 bg-neutral-800/50 text-neutral-400 rounded-full text-sm font-medium">
               {historyPayouts.length}
             </span>
           </div>
 
           {historyPayouts.length === 0 ? (
-            <Card className="p-12 text-center border-neutral-700 bg-neutral-950">
-              <Euro className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-              <p className="text-neutral-400 text-lg">No payout history</p>
+            <Card className="p-10 text-center border-neutral-800/50 bg-neutral-900/30">
+              <Euro className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+              <p className="text-neutral-500 text-sm">No payout history</p>
             </Card>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {historyPayouts.map((payout) => (
                 <Card
                   key={payout.id}
-                  className="p-6 border-neutral-700 bg-neutral-950/30 hover:bg-neutral-900/30 transition-colors"
+                  className="p-4 border-neutral-800/50 bg-neutral-900/20 hover:bg-neutral-900/30 transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -348,7 +348,7 @@ function PayoutsContent() {
                         <Button
                           onClick={() => handleCompletePayout(payout)}
                           disabled={completingId === payout.id}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 text-sm"
+                          className="bg-neutral-700 hover:bg-neutral-600 text-white px-4 text-sm"
                         >
                           {completingId === payout.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />

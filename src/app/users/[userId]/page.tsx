@@ -163,12 +163,12 @@ function UserDetailContent() {
         transaction={editingTransaction}
       />
       <div className="bg-black text-white min-h-screen">
-        <div className="container mx-auto py-16 px-4 space-y-12">
-          <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">{profile.name}</h1>
+        <div className="container mx-auto py-12 px-4 space-y-10">
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">{profile.name}</h1>
 
-          <div className="border border-neutral-800 rounded-2xl p-8 bg-gradient-to-br from-neutral-900 to-neutral-950 shadow-xl">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-yellow-400 rounded-full"></span>
+          <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
+            <h2 className="text-lg font-medium mb-5 flex items-center gap-2 text-neutral-200">
+              <span className="w-1 h-5 bg-neutral-500 rounded-full"></span>
               User Details
             </h2>
             <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
@@ -183,9 +183,9 @@ function UserDetailContent() {
             </div>
           </div>
 
-          <div className="border border-neutral-800 rounded-2xl p-8 bg-gradient-to-br from-neutral-900 to-neutral-950 shadow-xl">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-yellow-400 rounded-full"></span>
+          <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
+            <h2 className="text-lg font-medium mb-5 flex items-center gap-2 text-neutral-200">
+              <span className="w-1 h-5 bg-neutral-500 rounded-full"></span>
               Billing Information
             </h2>
             <form onSubmit={(e) => handleFormSubmit(e, 'Billing Info', `/admin/users/${userId}/billing`, 'PUT', Object.fromEntries(new FormData(e.currentTarget)) )} className="grid md:grid-cols-2 gap-x-12 gap-y-8">
@@ -197,10 +197,10 @@ function UserDetailContent() {
             </form>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="border border-neutral-800 rounded-2xl p-8 bg-gradient-to-br from-neutral-900 to-neutral-950 shadow-xl">
-              <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <span className="w-1 h-5 bg-green-400 rounded-full"></span>
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
+              <h3 className="text-base font-medium mb-5 flex items-center gap-2 text-neutral-200">
+                <span className="w-1 h-4 bg-neutral-500 rounded-full"></span>
                 Gift Credits
               </h3>
               <form onSubmit={(e) => handleFormSubmit(e, 'Gift Credits', `/admin/users/${userId}/gift-credits`, 'POST', { amount: parseInt((e.currentTarget.elements.namedItem('amount') as HTMLInputElement).value) })} className="flex items-end gap-4">
@@ -212,9 +212,9 @@ function UserDetailContent() {
               </form>
             </div>
 
-            <div className="border border-neutral-800 rounded-2xl p-8 bg-gradient-to-br from-neutral-900 to-neutral-950 shadow-xl">
-              <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <span className="w-1 h-5 bg-red-400 rounded-full"></span>
+            <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
+              <h3 className="text-base font-medium mb-5 flex items-center gap-2 text-neutral-200">
+                <span className="w-1 h-4 bg-neutral-500 rounded-full"></span>
                 Reset Password
               </h3>
               <form onSubmit={handleResetPassword} className="flex items-end gap-4">
@@ -227,14 +227,14 @@ function UserDetailContent() {
             </div>
           </div>
 
-          <div className="border border-neutral-800 rounded-2xl p-8 bg-gradient-to-br from-neutral-900 to-neutral-950 shadow-xl">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-yellow-400 rounded-full"></span>
+          <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
+            <h2 className="text-lg font-medium mb-5 flex items-center gap-2 text-neutral-200">
+              <span className="w-1 h-5 bg-neutral-500 rounded-full"></span>
               Transaction History
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {transactions.length > 0 ? transactions.map(t => (
-                  <div key={t.id} className="border border-neutral-800 rounded-xl p-5 grid grid-cols-5 items-center gap-4 group hover:bg-neutral-900 hover:border-neutral-700 transition-all">
+                  <div key={t.id} className="border border-neutral-800/50 rounded-lg p-4 grid grid-cols-5 items-center gap-4 group hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all">
                       <p className="col-span-2 text-neutral-400 font-medium">{t.createdAt}</p>
                       <div className="col-span-2">
                         <p className="text-lg font-semibold mb-1">${t.amount} <span className="text-neutral-400 font-normal text-sm">{t.type}</span></p>
@@ -266,9 +266,9 @@ function UserDetailContent() {
             </div>
           </div>
 
-          <div className="border border-neutral-800 rounded-2xl p-8 bg-gradient-to-br from-neutral-900 to-neutral-950 shadow-xl">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-yellow-400 rounded-full"></span>
+          <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
+            <h2 className="text-lg font-medium mb-5 flex items-center gap-2 text-neutral-200">
+              <span className="w-1 h-5 bg-neutral-500 rounded-full"></span>
               Add Transaction
             </h2>
             <form onSubmit={(e) => {

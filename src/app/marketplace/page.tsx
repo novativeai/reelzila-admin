@@ -263,10 +263,10 @@ function MarketplaceContent() {
           Back to Dashboard
         </Link>
 
-        <h1 className="text-7xl md:text-8xl font-extrabold tracking-tighter mb-4 bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4 text-white">
           Add to Marketplace
         </h1>
-        <p className="text-neutral-400 mb-16">
+        <p className="text-neutral-500 text-sm mb-12">
           Manually upload a video product to the marketplace
         </p>
 
@@ -360,7 +360,7 @@ function MarketplaceContent() {
                     type="button"
                     onClick={lookupUserByEmail}
                     disabled={isLoadingUser || !userEmail.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 whitespace-nowrap"
+                    className="bg-neutral-700 hover:bg-neutral-600 text-white font-medium px-6 whitespace-nowrap"
                   >
                     {isLoadingUser ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -484,7 +484,7 @@ function MarketplaceContent() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-yellow-400 hover:bg-yellow-400/90 text-black font-semibold py-3 rounded-lg transition-all disabled:opacity-50"
+                className="w-full bg-neutral-200 hover:bg-white text-black font-medium py-3 rounded-lg transition-all disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
