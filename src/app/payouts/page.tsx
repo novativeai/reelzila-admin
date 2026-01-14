@@ -4,7 +4,7 @@ import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminApi } from "@/hooks/useAdminApi";
-import { Loader2, ArrowLeft, CheckCircle, XCircle, Clock, Euro, RefreshCw, Pause } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle, XCircle, Clock, Euro, RefreshCw, Pause, Building2, Copy, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -13,16 +13,31 @@ interface FirestoreTimestamp {
   nanoseconds: number;
 }
 
+interface BankDetails {
+  iban?: string;
+  accountHolder?: string;
+  bankName?: string;
+  bic?: string;
+}
+
 interface PayoutRequest {
   id: string;
   amount: number;
-  paypalEmail: string;
+  bankDetails?: BankDetails;
   status: "pending" | "approved" | "rejected" | "completed";
   userId: string;
-  createdAt: FirestoreTimestamp | string;
+  userEmail?: string;
+  requestedAt: FirestoreTimestamp | string;
   approvedAt?: FirestoreTimestamp | string;
   rejectedAt?: FirestoreTimestamp | string;
+  completedAt?: FirestoreTimestamp | string;
   docPath?: string;
+}
+
+// Format IBAN with spaces for readability
+function formatIBAN(iban: string): string {
+  const cleaned = iban.replace(/\s/g, '').toUpperCase();
+  return cleaned.replace(/(.{4})/g, '$1 ').trim();
 }
 
 function PayoutsContent() {
@@ -35,6 +50,7 @@ function PayoutsContent() {
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [copiedIban, setCopiedIban] = useState<string | null>(null);
   const refreshInterval = 10000; // 10 seconds
 
   const fetchPayouts = async () => {
@@ -66,6 +82,12 @@ function PayoutsContent() {
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval]);
 
+  const handleCopyIban = (iban: string, payoutId: string) => {
+    navigator.clipboard.writeText(iban.replace(/\s/g, ''));
+    setCopiedIban(payoutId);
+    setTimeout(() => setCopiedIban(null), 2000);
+  };
+
   const handleApprovePayout = async (payout: PayoutRequest) => {
     setApprovingId(payout.id);
     try {
@@ -74,7 +96,7 @@ function PayoutsContent() {
         method: "POST",
         body: JSON.stringify({ user_id: userId }),
       });
-      alert("Payout approved! Processing PayPal transfer...");
+      alert("Payout approved! Please process the bank transfer manually.");
       await fetchPayouts();
     } catch (error) {
       alert(`Failed to approve payout: ${(error as Error).message}`);
@@ -150,6 +172,54 @@ function PayoutsContent() {
       default:
         return null;
     }
+  };
+
+  const renderBankDetails = (payout: PayoutRequest, showCopyButton: boolean = true) => {
+    const bank = payout.bankDetails;
+    if (!bank?.iban) {
+      return <p className="text-neutral-500 text-sm">No bank details provided</p>;
+    }
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-blue-400" />
+          <span className="font-medium text-white">{bank.accountHolder || "Unknown"}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <p className="text-xs text-neutral-500 mb-1">IBAN</p>
+            <p className="font-mono text-white text-sm">{formatIBAN(bank.iban)}</p>
+          </div>
+          {showCopyButton && (
+            <Button
+              onClick={() => handleCopyIban(bank.iban!, payout.id)}
+              size="sm"
+              variant="ghost"
+              className="text-neutral-400 hover:text-white"
+            >
+              {copiedIban === payout.id ? (
+                <Check className="w-4 h-4 text-green-400" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </Button>
+          )}
+        </div>
+        {bank.bankName && (
+          <div>
+            <p className="text-xs text-neutral-500">Bank</p>
+            <p className="text-neutral-300 text-sm">{bank.bankName}</p>
+          </div>
+        )}
+        {bank.bic && (
+          <div>
+            <p className="text-xs text-neutral-500">BIC/SWIFT</p>
+            <p className="font-mono text-neutral-300 text-sm">{bank.bic}</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -235,6 +305,22 @@ function PayoutsContent() {
           </div>
         )}
 
+        {/* Instructions */}
+        <Card className="mb-8 p-4 border-blue-700/50 bg-blue-900/20">
+          <div className="flex items-start gap-3">
+            <Building2 className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-blue-200 font-medium mb-1">Bank Transfer Workflow</p>
+              <p className="text-xs text-blue-200/70">
+                1. Review the payout request and verify the bank details<br />
+                2. Click &quot;Approve&quot; to mark as approved<br />
+                3. Process the bank transfer manually using your banking system<br />
+                4. Click &quot;Mark Completed&quot; once the transfer is done
+              </p>
+            </div>
+          </div>
+        </Card>
+
         {/* Pending Payouts Section */}
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-6">
@@ -257,45 +343,47 @@ function PayoutsContent() {
                   key={payout.id}
                   className="p-5 border-neutral-800/50 bg-neutral-900/30 hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-6">
                     <div className="flex-1">
-                      <div className="flex items-center gap-4 mb-3">
-                        <div className="flex-1">
-                          <p className="text-sm text-neutral-500 mb-1">Email</p>
-                          <p className="font-mono text-white">{payout.paypalEmail}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-neutral-500 mb-1">Amount</p>
-                          <p className="text-xl font-semibold text-neutral-200">€{payout.amount.toFixed(2)}</p>
-                        </div>
+                      {/* Bank Details */}
+                      <div className="mb-4">
+                        {renderBankDetails(payout)}
                       </div>
-                      <p className="text-xs text-neutral-500">
-                        User ID: {payout.userId?.substring(0, 12)}...
-                      </p>
+                      {/* User Info */}
+                      <div className="text-xs text-neutral-500 space-y-1">
+                        {payout.userEmail && <p>Email: {payout.userEmail}</p>}
+                        <p>User ID: {payout.userId?.substring(0, 12)}...</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <Button
-                        onClick={() => handleApprovePayout(payout)}
-                        disabled={approvingId === payout.id}
-                        className="bg-neutral-700 hover:bg-neutral-600 text-white px-4 text-sm"
-                      >
-                        {approvingId === payout.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          "Approve"
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => handleRejectPayout(payout)}
-                        disabled={rejectingId === payout.id}
-                        className="bg-neutral-800 hover:bg-red-900/50 text-neutral-300 hover:text-red-300 px-4 text-sm border border-neutral-700/50"
-                      >
-                        {rejectingId === payout.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          "Reject"
-                        )}
-                      </Button>
+                    <div className="flex flex-col items-end gap-3">
+                      <div className="text-right">
+                        <p className="text-sm text-neutral-500 mb-1">Amount</p>
+                        <p className="text-2xl font-bold text-[#D4FF4F]">€{payout.amount.toFixed(2)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleApprovePayout(payout)}
+                          disabled={approvingId === payout.id}
+                          className="bg-green-700 hover:bg-green-600 text-white px-4 text-sm"
+                        >
+                          {approvingId === payout.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Approve"
+                          )}
+                        </Button>
+                        <Button
+                          onClick={() => handleRejectPayout(payout)}
+                          disabled={rejectingId === payout.id}
+                          className="bg-neutral-800 hover:bg-red-900/50 text-neutral-300 hover:text-red-300 px-4 text-sm border border-neutral-700/50"
+                        >
+                          {rejectingId === payout.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Reject"
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -326,37 +414,37 @@ function PayoutsContent() {
                   key={payout.id}
                   className="p-4 border-neutral-800/50 bg-neutral-900/20 hover:bg-neutral-900/30 transition-all"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-6">
                     <div className="flex-1">
-                      <div className="flex items-center gap-4 mb-3">
-                        <div>
-                          <p className="text-sm text-neutral-500 mb-1">Email</p>
-                          <p className="font-mono text-white">{payout.paypalEmail}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-neutral-500 mb-1">Amount</p>
-                          <p className="font-bold text-white">€{payout.amount.toFixed(2)}</p>
-                        </div>
+                      {/* Bank Details */}
+                      <div className="mb-3">
+                        {renderBankDetails(payout, payout.status === "approved")}
                       </div>
+                      {/* User Info */}
                       <p className="text-xs text-neutral-500">
                         User ID: {payout.userId?.substring(0, 12)}...
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 ml-4">
-                      {getStatusBadge(payout.status)}
-                      {payout.status === "approved" && (
-                        <Button
-                          onClick={() => handleCompletePayout(payout)}
-                          disabled={completingId === payout.id}
-                          className="bg-neutral-700 hover:bg-neutral-600 text-white px-4 text-sm"
-                        >
-                          {completingId === payout.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            "Mark Completed"
-                          )}
-                        </Button>
-                      )}
+                    <div className="flex flex-col items-end gap-3">
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-white">€{payout.amount.toFixed(2)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(payout.status)}
+                        {payout.status === "approved" && (
+                          <Button
+                            onClick={() => handleCompletePayout(payout)}
+                            disabled={completingId === payout.id}
+                            className="bg-green-700 hover:bg-green-600 text-white px-4 text-sm"
+                          >
+                            {completingId === payout.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              "Mark Completed"
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Card>

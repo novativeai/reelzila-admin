@@ -32,15 +32,23 @@ function DashboardContent() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const fetchData = async () => {
+    setError(null);
     try {
+      if (!apiBaseUrl) {
+        throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured. Please set this environment variable in Vercel.");
+      }
       const statsData = await makeRequest('/admin/stats');
       const usersData = await makeRequest('/admin/users');
       setStats(statsData);
       setUsers(usersData);
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
+      setError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -79,6 +87,27 @@ function DashboardContent() {
         <div className="bg-black text-white min-h-screen flex items-center justify-center">
             <Loader2 className="animate-spin h-10 w-10" />
         </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-black text-white min-h-screen flex items-center justify-center">
+        <div className="max-w-md text-center p-8 bg-red-900/20 border border-red-700 rounded-xl">
+          <h2 className="text-xl font-bold text-red-400 mb-4">Configuration Error</h2>
+          <p className="text-red-300 mb-4">{error}</p>
+          <div className="text-left bg-black/50 p-4 rounded-lg text-xs font-mono">
+            <p className="text-neutral-400 mb-2">API Base URL:</p>
+            <p className="text-yellow-400">{apiBaseUrl || "NOT SET"}</p>
+          </div>
+          <button
+            onClick={() => fetchData()}
+            className="mt-6 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
     );
   }
 
