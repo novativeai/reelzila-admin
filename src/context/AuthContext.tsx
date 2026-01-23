@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 interface AuthContextType {
@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean;
   credits: number;
   setCredits: (credits: number) => void;
+  getIdToken: () => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,7 +68,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []); // The empty dependency array ensures this effect runs only once on mount
 
-  const value = { user, loading, credits, setCredits };
+  // Get Firebase ID token for API calls
+  const getIdToken = useCallback(async (): Promise<string> => {
+    if (!user) {
+      throw new Error('No authenticated user');
+    }
+    return user.getIdToken();
+  }, [user]);
+
+  const value = { user, loading, credits, setCredits, getIdToken };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
