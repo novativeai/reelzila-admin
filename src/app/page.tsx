@@ -11,12 +11,11 @@ import { Separator } from "@/components/ui/separator";
 
 
 interface UserRecord {
-  id: string,
-  email: string; // Note: API might be returning null for this
-  plan?: string;
+  id: string;
+  email: string;
   credits: number;
   isAdmin?: boolean;
-  generationCount?: number
+  generationCount?: number;
 }
 
 const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
@@ -150,8 +149,8 @@ function DashboardContent() {
                             <p className="font-medium text-sm text-neutral-200">{u.email || "No Email Provided"}</p>
                           </div>
                           <div className="text-right">
-                              <p className="text-sm text-neutral-400">{u.plan}</p>
-                              <p className="text-xs text-neutral-600">{u.generationCount} Generations</p>
+                              <p className="text-sm text-neutral-400">{u.credits} credits</p>
+                              <p className="text-xs text-neutral-600">{u.generationCount} generations</p>
                           </div>
                       </div>
                   </Link>

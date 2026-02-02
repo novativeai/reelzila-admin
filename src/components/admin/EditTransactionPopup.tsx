@@ -57,10 +57,10 @@ export const EditTransactionPopup: React.FC<EditTransactionPopupProps> = ({ isOp
                     <Label htmlFor="date">Date</Label>
                     <DateInput id="date" value={data.date} onChange={handleDateChange} className={inputStyles} />
                 </div>
-                <div className="grid gap-2"><Label htmlFor="amount">Amount ($)</Label><Input id="amount" name="amount" type="number" value={data.amount} onChange={handleChange} className={inputStyles} /></div>
+                <div className="grid gap-2"><Label htmlFor="amount">Amount (€)</Label><Input id="amount" name="amount" type="number" value={data.amount} onChange={handleChange} className={inputStyles} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2"><Label>Type</Label><Select value={data.type} onValueChange={(v) => handleSelectChange('type', v)}><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Purchase">Purchase</SelectItem><SelectItem value="Subscription">Subscription</SelectItem></SelectContent></Select></div>
+                <div className="grid gap-2"><Label>Type</Label><Select value={data.type} onValueChange={(v) => handleSelectChange('type', v)}><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Credit Purchase">Credit Purchase</SelectItem><SelectItem value="Marketplace Purchase">Marketplace Purchase</SelectItem></SelectContent></Select></div>
                 <div className="grid gap-2"><Label>Status</Label><Select value={data.status} onValueChange={(v) => handleSelectChange('status', v)}><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent></Select></div>
             </div>
           <Button type="submit" className="w-full bg-yellow-300 text-black font-bold hover:bg-yellow-400" disabled={isProcessing}>

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Edit2, Trash2, Loader2, Download } from "lucide-react";
+import Link from "next/link";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { EditTransactionPopup, TransactionData } from "@/components/admin/EditTransactionPopup";
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
@@ -19,6 +20,8 @@ interface BillingInfo {
   address?: string;
   city?: string;
   state?: string;
+  country?: string;
+  postCode?: string;
   validTill?: string;
 }
 
@@ -27,7 +30,7 @@ interface UserProfile {
   email: string;
   billingInfo?: BillingInfo;
   credits?: number;
-  activePlan?: string;
+  generationCount?: number;
 }
 
 // This type matches the data received from the backend's GET request
@@ -164,7 +167,17 @@ function UserDetailContent() {
       />
       <div className="bg-black text-white min-h-screen">
         <div className="container mx-auto py-12 px-4 space-y-10">
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">{profile.name}</h1>
+          <div className="flex items-center gap-4 mb-2">
+            <Link href="/" className="hover:bg-neutral-800/50 p-2 rounded-lg transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">{profile.name}</h1>
+          </div>
+          <div className="flex gap-4 ml-14 text-sm text-neutral-400">
+            <span>{profile.credits ?? 0} credits</span>
+            <span className="text-neutral-600">·</span>
+            <span>{profile.generationCount ?? 0} generations</span>
+          </div>
 
           <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
             <h2 className="text-lg font-medium mb-5 flex items-center gap-2 text-neutral-200">
@@ -188,12 +201,20 @@ function UserDetailContent() {
               <span className="w-1 h-5 bg-neutral-500 rounded-full"></span>
               Billing Information
             </h2>
-            <form onSubmit={(e) => handleFormSubmit(e, 'Billing Info', `/admin/users/${userId}/billing`, 'PUT', Object.fromEntries(new FormData(e.currentTarget)) )} className="grid md:grid-cols-2 gap-x-12 gap-y-8">
-              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Name on Card</label><Input name="nameOnCard" defaultValue={profile.billingInfo?.nameOnCard} className={inputStyles} /></div><PlusButton isLoading={isSubmitting === 'Billing Info'} /></div>
-              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Valid Till (MM/YY)</label><Input name="validTill" defaultValue={profile.billingInfo?.validTill} className={inputStyles} /></div><PlusButton isLoading={isSubmitting === 'Billing Info'} /></div>
-              <div className="flex items-end gap-4 md:col-span-2"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Address</label><Input name="address" defaultValue={profile.billingInfo?.address} className={inputStyles} /></div><PlusButton isLoading={isSubmitting === 'Billing Info'} /></div>
-              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">City</label><Input name="city" defaultValue={profile.billingInfo?.city} className={inputStyles} /></div><PlusButton isLoading={isSubmitting === 'Billing Info'} /></div>
-              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">State</label><Input name="state" defaultValue={profile.billingInfo?.state} className={inputStyles} /></div><PlusButton isLoading={isSubmitting === 'Billing Info'} /></div>
+            <form onSubmit={(e) => {
+              const formData = Object.fromEntries(new FormData(e.currentTarget));
+              const filtered = Object.fromEntries(Object.entries(formData).filter(([, v]) => v !== ''));
+              handleFormSubmit(e, 'Billing Info', `/admin/users/${userId}/billing`, 'PUT', filtered);
+            }} className="grid md:grid-cols-2 gap-x-12 gap-y-8">
+              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Name on Card</label><Input name="nameOnCard" defaultValue={profile.billingInfo?.nameOnCard} className={inputStyles} /></div></div>
+              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Address</label><Input name="address" defaultValue={profile.billingInfo?.address} className={inputStyles} /></div></div>
+              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">City</label><Input name="city" defaultValue={profile.billingInfo?.city} className={inputStyles} /></div></div>
+              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Post Code</label><Input name="postCode" defaultValue={profile.billingInfo?.postCode} className={inputStyles} /></div></div>
+              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">Country</label><Input name="country" defaultValue={profile.billingInfo?.country} className={inputStyles} /></div></div>
+              <div className="flex items-end gap-4"><div className="grid gap-2 w-full"><label className="text-sm text-neutral-400 font-medium">State / Region</label><Input name="state" defaultValue={profile.billingInfo?.state} className={inputStyles} /></div></div>
+              <div className="md:col-span-2 flex justify-end">
+                <PlusButton isLoading={isSubmitting === 'Billing Info'} />
+              </div>
             </form>
           </div>
 
@@ -237,7 +258,7 @@ function UserDetailContent() {
                   <div key={t.id} className="border border-neutral-800/50 rounded-lg p-4 grid grid-cols-5 items-center gap-4 group hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all">
                       <p className="col-span-2 text-neutral-400 font-medium">{t.createdAt}</p>
                       <div className="col-span-2">
-                        <p className="text-lg font-semibold mb-1">${t.amount} <span className="text-neutral-400 font-normal text-sm">{t.type}</span></p>
+                        <p className="text-lg font-semibold mb-1">{t.amount.toFixed(2)} € <span className="text-neutral-400 font-normal text-sm">{t.type}</span></p>
                         <Badge variant={t.status === 'paid' ? 'default' : 'secondary'} className={t.status === 'paid' ? 'bg-green-900 text-green-200 hover:bg-green-800' : t.status === 'pending' ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800' : 'bg-red-900 text-red-200 hover:bg-red-800'}>{t.status}</Badge>
 
                         <button
@@ -284,7 +305,7 @@ function UserDetailContent() {
             }} className="flex items-end gap-4 flex-wrap">
               <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Date</label><DateInput name="date" value={newTransactionDate} onChange={setNewTransactionDate} className={inputStyles} required/></div>
               <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Amount</label><Input name="amount" type="number" className={inputStyles} required/></div>
-              <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Type</label><Select name="type" defaultValue="Purchase"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Purchase">Purchase</SelectItem><SelectItem value="Subscription">Subscription</SelectItem></SelectContent></Select></div>
+              <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Type</label><Select name="type" defaultValue="Credit Purchase"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Credit Purchase">Credit Purchase</SelectItem><SelectItem value="Marketplace Purchase">Marketplace Purchase</SelectItem></SelectContent></Select></div>
               <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Status</label><Select name="status" defaultValue="paid"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent></Select></div>
               <PlusButton isLoading={isSubmitting === 'Add Transaction'} />
             </form>
