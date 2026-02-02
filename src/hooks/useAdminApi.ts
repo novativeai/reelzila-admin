@@ -35,8 +35,24 @@ export const useAdminApi = () => {
     
     // 5. Handle any errors from the backend.
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'An API error occurred.');
+        let message = 'An API error occurred.';
+        try {
+            const errorData = await response.json();
+            if (typeof errorData.detail === 'string') {
+                message = errorData.detail;
+            } else if (Array.isArray(errorData.detail)) {
+                // Pydantic validation errors come as an array of objects
+                message = errorData.detail
+                    .map((err: { loc?: string[]; msg?: string }) => {
+                        const field = err.loc?.slice(-1)[0] || 'unknown';
+                        return `${field}: ${err.msg || 'invalid'}`;
+                    })
+                    .join(', ');
+            }
+        } catch {
+            message = `Server error (${response.status})`;
+        }
+        throw new Error(message);
     }
     
     // 6. Return the JSON response if it exists.

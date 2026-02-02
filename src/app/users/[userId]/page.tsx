@@ -224,10 +224,19 @@ function UserDetailContent() {
                 <span className="w-1 h-4 bg-neutral-500 rounded-full"></span>
                 Gift Credits
               </h3>
-              <form onSubmit={(e) => handleFormSubmit(e, 'Gift Credits', `/admin/users/${userId}/gift-credits`, 'POST', { amount: parseInt((e.currentTarget.elements.namedItem('amount') as HTMLInputElement).value) })} className="flex items-end gap-4">
+              <form onSubmit={(e) => {
+                const rawValue = (e.currentTarget.elements.namedItem('amount') as HTMLInputElement).value;
+                const amount = parseInt(rawValue, 10);
+                if (!rawValue || isNaN(amount) || amount < 1) {
+                  e.preventDefault();
+                  alert('Please enter a valid credit amount (minimum 1).');
+                  return;
+                }
+                handleFormSubmit(e, 'Gift Credits', `/admin/users/${userId}/gift-credits`, 'POST', { amount });
+              }} className="flex items-end gap-4">
                 <div className="grid gap-2 w-full">
                   <label className="text-sm text-neutral-400 font-medium">Amount</label>
-                  <Input name="amount" placeholder="eg: 10" type="number" className={inputStyles} />
+                  <Input name="amount" placeholder="eg: 10" type="number" min="1" max="10000" required className={inputStyles} />
                 </div>
                 <PlusButton isLoading={isSubmitting === 'Gift Credits'} />
               </form>
