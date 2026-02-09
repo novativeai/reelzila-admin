@@ -57,6 +57,7 @@ interface MarketplaceProduct {
   featured?: boolean;
   createdAt: Timestamp | FieldValue | string;
   updatedAt?: Timestamp | FieldValue | string;
+  sold?: number;
   salesCount?: number;
   adminNotes?: string;
 }
@@ -175,7 +176,7 @@ function MarketplaceContent() {
       title: product.title || "",
       description: product.description || "",
       price: product.price?.toString() || "",
-      status: product.status || "active",
+      status: product.status || "published",
       featured: product.featured || false,
       adminNotes: product.adminNotes || "",
     });
@@ -430,10 +431,10 @@ function MarketplaceContent() {
           .split(",")
           .map((uc) => uc.trim())
           .filter(Boolean),
-        status: "active",
+        status: "published",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        salesCount: 0,
+        sold: 0,
         prompt: formData.prompt || undefined,
       };
 
@@ -471,11 +472,11 @@ function MarketplaceContent() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
+      published: "bg-green-500/20 text-green-400 border-green-500/50",
       active: "bg-green-500/20 text-green-400 border-green-500/50",
       inactive: "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
       suspended: "bg-red-500/20 text-red-400 border-red-500/50",
       deleted: "bg-neutral-500/20 text-neutral-400 border-neutral-500/50",
-      published: "bg-green-500/20 text-green-400 border-green-500/50",
     };
     return (
       <span className={`px-2 py-1 rounded-full text-xs border ${styles[status] || styles.inactive}`}>
@@ -556,7 +557,7 @@ function MarketplaceContent() {
                 className="bg-neutral-900 border border-neutral-800 text-white rounded-md px-4 py-2"
               >
                 <option value="">All Status</option>
-                <option value="active">Active</option>
+                <option value="published">Published</option>
                 <option value="inactive">Inactive</option>
                 <option value="suspended">Suspended</option>
                 <option value="deleted">Deleted</option>
@@ -622,7 +623,7 @@ function MarketplaceContent() {
                           ({product.sellerEmail || product.sellerId})
                         </p>
                         <p className="text-sm text-neutral-500">
-                          €{product.price?.toFixed(2)} • {product.salesCount || 0} sales
+                          €{product.price?.toFixed(2)} • {product.sold ?? product.salesCount ?? 0} sales
                         </p>
                       </div>
 
@@ -938,7 +939,7 @@ function MarketplaceContent() {
                       }
                       className="w-full bg-neutral-900 border border-neutral-800 text-white rounded-md px-4 py-2"
                     >
-                      <option value="active">Active</option>
+                      <option value="published">Published</option>
                       <option value="inactive">Inactive</option>
                       <option value="suspended">Suspended</option>
                       <option value="deleted">Deleted</option>

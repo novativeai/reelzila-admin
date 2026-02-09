@@ -1,117 +1,256 @@
 "use client";
 
-import { useState } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
+import { useState, useRef } from 'react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
+import { useAdminApi } from '@/hooks/useAdminApi';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle, XCircle, FileSpreadsheet, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, FileSpreadsheet, ChevronDown, ChevronUp, Download } from 'lucide-react';
 
-// Define the expected structure of a row in the CSV (case-insensitive)
-interface CsvRow {
-  [key: string]: string;
+interface ParsedRow {
+  email: string;
+  date: string;
+  amount: number;
+  type: string;
+  status: string;
 }
 
-// Normalize header names to lowercase
-const normalizeHeaders = (row: CsvRow): CsvRow => {
-  const normalized: CsvRow = {};
-  for (const key of Object.keys(row)) {
-    normalized[key.toLowerCase().trim()] = row[key];
-  }
-  return normalized;
-};
+interface BulkResult {
+  success: number;
+  errors: string[];
+}
 
-// Normalize status values to lowercase
-const normalizeStatus = (status: string): 'paid' | 'pending' | 'failed' => {
-  const normalized = status.toLowerCase().trim();
-  if (['paid', 'pending', 'failed'].includes(normalized)) {
-    return normalized as 'paid' | 'pending' | 'failed';
+const VALID_STATUSES = ['paid', 'pending', 'failed'];
+const MAX_ROWS = 1000;
+const DATE_REGEX = /^\d{2}\/\d{2}\/\d{4}$/;
+
+/** Validate a single parsed row, returning an error message or null. */
+function validateRow(row: ParsedRow, rowNum: number): string | null {
+  if (!row.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
+    return `Row ${rowNum}: Invalid or missing email "${row.email || ''}"`;
   }
-  return 'pending'; // Default fallback
-};
+  if (!row.date || !DATE_REGEX.test(row.date)) {
+    return `Row ${rowNum}: Invalid date "${row.date || ''}". Use DD/MM/YYYY format`;
+  }
+  // Validate date is a real calendar date
+  const [dd, mm, yyyy] = row.date.split('/').map(Number);
+  const dateObj = new Date(yyyy, mm - 1, dd);
+  if (dateObj.getDate() !== dd || dateObj.getMonth() !== mm - 1 || dateObj.getFullYear() !== yyyy) {
+    return `Row ${rowNum}: Date "${row.date}" is not a valid calendar date`;
+  }
+  if (yyyy < 2000 || yyyy > 2100) {
+    return `Row ${rowNum}: Year ${yyyy} is out of reasonable range (2000-2100)`;
+  }
+  if (isNaN(row.amount) || row.amount < 0 || row.amount > 100000) {
+    return `Row ${rowNum}: Amount must be a number between 0 and 100,000`;
+  }
+  if (!row.type || row.type.trim().length === 0 || row.type.trim().length > 50) {
+    return `Row ${rowNum}: Type is required and must be under 50 characters`;
+  }
+  if (!VALID_STATUSES.includes(row.status.toLowerCase().trim())) {
+    return `Row ${rowNum}: Status must be one of: paid, pending, failed`;
+  }
+  return null;
+}
+
+/** Normalize a header string to lowercase trimmed. */
+function normalizeHeader(header: string): string {
+  return header.toLowerCase().trim();
+}
+
+/** Parse an XLSX file into rows. */
+function parseXlsx(file: File): Promise<ParsedRow[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          reject(new Error('No sheets found in the file'));
+          return;
+        }
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { raw: false });
+
+        const rows: ParsedRow[] = jsonData.map((raw) => {
+          const normalized: Record<string, string> = {};
+          for (const key of Object.keys(raw)) {
+            normalized[normalizeHeader(key)] = String(raw[key] ?? '');
+          }
+          return {
+            email: normalized['email'] || '',
+            date: normalized['date'] || '',
+            amount: parseInt(normalized['amount'] || '0', 10),
+            type: normalized['type'] || '',
+            status: normalized['status'] || '',
+          };
+        });
+        resolve(rows);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/** Parse a CSV file into rows using PapaParse. */
+function parseCsv(file: File): Promise<ParsedRow[]> {
+  return new Promise((resolve, reject) => {
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (result) => {
+        if (result.errors.length > 0) {
+          reject(new Error(result.errors.map((e) => e.message).join(', ')));
+          return;
+        }
+        const rows: ParsedRow[] = result.data.map((raw) => {
+          const normalized: Record<string, string> = {};
+          for (const key of Object.keys(raw)) {
+            normalized[normalizeHeader(key)] = raw[key];
+          }
+          return {
+            email: normalized['email'] || '',
+            date: normalized['date'] || '',
+            amount: parseInt(normalized['amount'] || '0', 10),
+            type: normalized['type'] || '',
+            status: normalized['status'] || '',
+          };
+        });
+        resolve(rows);
+      },
+      error: (err: Error) => reject(err),
+    });
+  });
+}
+
+/** Generate and download an XLSX template file. */
+function downloadTemplate() {
+  const templateData = [
+    { email: 'john@example.com', date: '15/01/2025', amount: 50, type: 'credit_purchase', status: 'paid' },
+    { email: 'jane@example.com', date: '20/01/2025', amount: 100, type: 'subscription', status: 'pending' },
+  ];
+  const ws = XLSX.utils.json_to_sheet(templateData);
+  // Set column widths for readability
+  ws['!cols'] = [
+    { wch: 25 }, // email
+    { wch: 14 }, // date
+    { wch: 10 }, // amount
+    { wch: 20 }, // type
+    { wch: 10 }, // status
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+  XLSX.writeFile(wb, 'transactions_template.xlsx');
+}
 
 export const CsvUpload = () => {
+  const { makeRequest } = useAdminApi();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [results, setResults] = useState<{ success: number; errors: string[] } | null>(null);
+  const [progress, setProgress] = useState('');
+  const [results, setResults] = useState<BulkResult | null>(null);
   const [showExample, setShowExample] = useState(false);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const resetFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['csv', 'xlsx', 'xls'].includes(ext || '')) {
+      setResults({ success: 0, errors: ['Unsupported file type. Please upload a .csv or .xlsx file.'] });
+      resetFileInput();
+      return;
+    }
+
     setIsProcessing(true);
     setResults(null);
+    setProgress('Parsing file...');
 
-    Papa.parse<CsvRow>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (parseResult) => {
-        const { data, errors: parseErrors } = parseResult;
-
-        if (parseErrors.length > 0) {
-          setResults({ success: 0, errors: parseErrors.map(e => e.message) });
-          setIsProcessing(false);
-          return;
-        }
-
-        const errorMessages: string[] = [];
-        const writePromises: Promise<void>[] = [];
-
-        // Use a Map to cache user lookups and avoid repeated queries for the same email
-        const userCache = new Map<string, string | null>();
-
-        for (const [index, rawRow] of data.entries()) {
-          try {
-            // Normalize headers to be case-insensitive
-            const row = normalizeHeaders(rawRow);
-
-            if (!row.email || !row.date || !row.amount || !row.type || !row.status) {
-              throw new Error(`Row ${index + 2}: Missing required fields.`);
-            }
-
-            const email = row.email.toLowerCase().trim();
-
-            let userId: string | null = null;
-            if (userCache.has(email)) {
-              userId = userCache.get(email)!;
-            } else {
-              const userQuery = query(collection(db, "users"), where("email", "==", email));
-              const querySnapshot = await getDocs(userQuery);
-              if (querySnapshot.empty) {
-                userCache.set(email, null);
-                throw new Error(`Row ${index + 2}: User with email "${email}" not found.`);
-              }
-              userId = querySnapshot.docs[0].id;
-              userCache.set(email, userId);
-            }
-
-            if (!userId) continue;
-
-            // Convert date string 'dd/mm/yyyy' to a Date object
-            const dateParts = row.date.split('/');
-            const dateObject = new Date(+dateParts[2], +dateParts[1] - 1, +dateParts[0]);
-
-            const transactionData = {
-              amount: parseInt(row.amount, 10),
-              type: row.type.trim(),
-              status: normalizeStatus(row.status),
-              createdAt: Timestamp.fromDate(dateObject),
-            };
-
-            const transactionsCollectionRef = collection(db, "users", userId, "payments");
-            writePromises.push(addDoc(transactionsCollectionRef, transactionData).then());
-          } catch (error) {
-            errorMessages.push((error as Error).message);
-          }
-        }
-
-        await Promise.all(writePromises);
-
-        setResults({ success: writePromises.length, errors: errorMessages });
-        setIsProcessing(false);
+    try {
+      // 1. Parse file
+      let rows: ParsedRow[];
+      if (ext === 'csv') {
+        rows = await parseCsv(file);
+      } else {
+        rows = await parseXlsx(file);
       }
-    });
+
+      if (rows.length === 0) {
+        setResults({ success: 0, errors: ['File is empty or has no data rows.'] });
+        setIsProcessing(false);
+        resetFileInput();
+        return;
+      }
+
+      if (rows.length > MAX_ROWS) {
+        setResults({ success: 0, errors: [`File has ${rows.length} rows. Maximum is ${MAX_ROWS} per upload.`] });
+        setIsProcessing(false);
+        resetFileInput();
+        return;
+      }
+
+      // 2. Client-side validation
+      setProgress(`Validating ${rows.length} rows...`);
+      const clientErrors: string[] = [];
+      const validRows: Array<{ email: string; date: string; amount: number; type: string; status: string }> = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const error = validateRow(row, i + 2); // +2: row 1 is headers, index is 0-based
+        if (error) {
+          clientErrors.push(error);
+          if (clientErrors.length >= 100) {
+            clientErrors.push(`... and more errors. Fix the first issues and re-upload.`);
+            break;
+          }
+        } else {
+          validRows.push({
+            email: row.email.trim(),
+            date: row.date.trim(),
+            amount: row.amount,
+            type: row.type.trim(),
+            status: row.status.toLowerCase().trim(),
+          });
+        }
+      }
+
+      if (validRows.length === 0) {
+        setResults({ success: 0, errors: clientErrors });
+        setIsProcessing(false);
+        resetFileInput();
+        return;
+      }
+
+      // 3. Send to backend
+      setProgress(`Uploading ${validRows.length} valid rows to server...`);
+      const response = await makeRequest('/admin/transactions/bulk', {
+        method: 'POST',
+        body: JSON.stringify({ rows: validRows }),
+      }) as BulkResult;
+
+      // Combine client-side errors with server-side errors
+      const allErrors = [...clientErrors, ...(response.errors || [])];
+      setResults({ success: response.success || 0, errors: allErrors });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setResults({ success: 0, errors: [message] });
+    } finally {
+      setIsProcessing(false);
+      setProgress('');
+      resetFileInput();
+    }
   };
 
   return (
@@ -122,17 +261,26 @@ export const CsvUpload = () => {
       </div>
 
       <p className="text-sm text-neutral-400 mb-4">
-        Import transactions from a CSV file. Headers are case-insensitive.
+        Import transactions from a CSV or XLSX file. Headers are case-insensitive. Max {MAX_ROWS} rows per upload.
       </p>
 
       {/* Example Toggle */}
-      <button
-        onClick={() => setShowExample(!showExample)}
-        className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors mb-4"
-      >
-        {showExample ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-        {showExample ? 'Hide example' : 'Show example format'}
-      </button>
+      <div className="flex items-center gap-4 mb-4">
+        <button
+          onClick={() => setShowExample(!showExample)}
+          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+        >
+          {showExample ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {showExample ? 'Hide example' : 'Show example format'}
+        </button>
+        <button
+          onClick={downloadTemplate}
+          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download template (.xlsx)
+        </button>
+      </div>
 
       {/* Example Table */}
       {showExample && (
@@ -160,22 +308,23 @@ export const CsvUpload = () => {
                 <td className="px-3 py-2 text-neutral-300">20/01/2025</td>
                 <td className="px-3 py-2 text-neutral-300">100</td>
                 <td className="px-3 py-2 text-neutral-300">subscription</td>
-                <td className="px-3 py-2 text-neutral-300">Pending</td>
+                <td className="px-3 py-2 text-neutral-300">pending</td>
               </tr>
             </tbody>
           </table>
           <p className="text-[10px] text-neutral-600 mt-2">
-            Status values: paid, pending, failed (case-insensitive)
+            Status values: paid, pending, failed (case-insensitive) &bull; Date format: DD/MM/YYYY &bull; Amount: 0&ndash;100,000
           </p>
         </div>
       )}
 
       <div className="flex items-center gap-3">
-        <Label htmlFor="csv-upload" className="sr-only">Upload CSV</Label>
+        <Label htmlFor="csv-upload" className="sr-only">Upload CSV or XLSX</Label>
         <Input
+          ref={fileInputRef}
           id="csv-upload"
           type="file"
-          accept=".csv"
+          accept=".csv,.xlsx,.xls"
           onChange={handleFileUpload}
           disabled={isProcessing}
           className="text-sm bg-neutral-800/50 border-neutral-700/50 file:bg-neutral-700 file:text-neutral-200 file:border-0 file:mr-3 file:px-3 file:py-1 file:rounded hover:bg-neutral-800/70 transition-colors cursor-pointer"
@@ -183,14 +332,14 @@ export const CsvUpload = () => {
       </div>
 
       {isProcessing && (
-        <div className="mt-4 flex items-center gap-2 text-neutral-400 text-sm">
+        <div className="mt-4 flex items-center gap-2 text-neutral-400 text-sm" aria-live="polite">
           <Loader2 className="animate-spin h-4 w-4" />
-          <span>Processing...</span>
+          <span>{progress || 'Processing...'}</span>
         </div>
       )}
 
       {results && (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3" aria-live="polite">
           {results.success > 0 && (
             <div className="flex items-center gap-2 text-green-400/90 text-sm">
               <CheckCircle className="h-4 w-4" />
@@ -204,7 +353,10 @@ export const CsvUpload = () => {
                 <span>{results.errors.length} error{results.errors.length !== 1 ? 's' : ''}</span>
               </div>
               <ul className="text-red-400/70 text-xs space-y-1 max-h-32 overflow-y-auto">
-                {results.errors.map((err, i) => <li key={i}>• {err}</li>)}
+                {results.errors.slice(0, 100).map((err, i) => <li key={i}>&bull; {err}</li>)}
+                {results.errors.length > 100 && (
+                  <li className="text-red-400/50 italic">... and {results.errors.length - 100} more errors</li>
+                )}
               </ul>
             </div>
           )}
