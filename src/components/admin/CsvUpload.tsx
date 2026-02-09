@@ -133,7 +133,8 @@ function parseCsv(file: File): Promise<ParsedRow[]> {
 function downloadTemplate() {
   const templateData = [
     { email: 'john@example.com', date: '15/01/2025', amount: 50, type: 'credit_purchase', status: 'paid' },
-    { email: 'jane@example.com', date: '20/01/2025', amount: 100, type: 'subscription', status: 'pending' },
+    { email: 'jane@example.com', date: '20/01/2025', amount: 100, type: 'credit_purchase', status: 'pending' },
+    { email: 'bob@example.com', date: '25/01/2025', amount: 75, type: 'credit_purchase', status: 'failed' },
   ];
   const ws = XLSX.utils.json_to_sheet(templateData);
   // Set column widths for readability
@@ -307,8 +308,15 @@ export const CsvUpload = () => {
                 <td className="px-3 py-2 text-neutral-300">jane@example.com</td>
                 <td className="px-3 py-2 text-neutral-300">20/01/2025</td>
                 <td className="px-3 py-2 text-neutral-300">100</td>
-                <td className="px-3 py-2 text-neutral-300">subscription</td>
+                <td className="px-3 py-2 text-neutral-300">credit_purchase</td>
                 <td className="px-3 py-2 text-neutral-300">pending</td>
+              </tr>
+              <tr className="bg-neutral-900/30">
+                <td className="px-3 py-2 text-neutral-300">bob@example.com</td>
+                <td className="px-3 py-2 text-neutral-300">25/01/2025</td>
+                <td className="px-3 py-2 text-neutral-300">75</td>
+                <td className="px-3 py-2 text-neutral-300">credit_purchase</td>
+                <td className="px-3 py-2 text-neutral-300">failed</td>
               </tr>
             </tbody>
           </table>
