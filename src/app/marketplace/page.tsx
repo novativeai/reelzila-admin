@@ -102,6 +102,7 @@ function MarketplaceContent() {
   const [userEmail, setUserEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const [thumbnailStatus, setThumbnailStatus] = useState<"idle" | "generating" | "ready" | "failed">("idle");
 
   const [formData, setFormData] = useState({
     videoUrl: "",
@@ -414,13 +415,45 @@ function MarketplaceContent() {
 
       const sellerName = selectedUser.displayName || selectedUser.name || selectedUser.email;
 
+      // Auto-generate thumbnail if none provided
+      let finalThumbnailUrl = formData.thumbnailUrl.trim();
+      if (!finalThumbnailUrl) {
+        try {
+          setThumbnailStatus("generating");
+          const token = await getIdToken();
+          const thumbResponse = await fetch(
+            `${API_BASE_URL}/generate-thumbnail`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ videoUrl: formData.videoUrl }),
+            }
+          );
+
+          if (thumbResponse.ok) {
+            const thumbData = await thumbResponse.json();
+            finalThumbnailUrl = thumbData.thumbnailUrl;
+            setThumbnailStatus("ready");
+          } else {
+            setThumbnailStatus("failed");
+            finalThumbnailUrl = formData.videoUrl;
+          }
+        } catch {
+          setThumbnailStatus("failed");
+          finalThumbnailUrl = formData.videoUrl;
+        }
+      }
+
       const productData = {
         sellerId: formData.sellerId,
         sellerName: sellerName,
         title: formData.title,
         description: formData.description,
         videoUrl: formData.videoUrl,
-        thumbnailUrl: formData.thumbnailUrl || formData.videoUrl,
+        thumbnailUrl: finalThumbnailUrl,
         price: price,
         tags: formData.tags
           .split(",")
@@ -456,6 +489,7 @@ function MarketplaceContent() {
       setUserEmail("");
       setSelectedUser(null);
       setVideoPreview(null);
+      setThumbnailStatus("idle");
       setSuccess(true);
       addToast("Product successfully added to marketplace!", "success");
 
@@ -730,9 +764,30 @@ function MarketplaceContent() {
                     name="thumbnailUrl"
                     value={formData.thumbnailUrl}
                     onChange={handleInputChange}
-                    placeholder="https://example.com/thumbnail.jpg"
+                    placeholder="Leave empty to auto-generate from video"
                     className={inputStyles}
                   />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Leave empty to auto-generate a thumbnail from the video on publish.
+                  </p>
+                  {thumbnailStatus === "generating" && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-neutral-400">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Generating thumbnail from video...
+                    </div>
+                  )}
+                  {thumbnailStatus === "ready" && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-green-400">
+                      <CheckCircle className="w-3 h-3" />
+                      Thumbnail generated
+                    </div>
+                  )}
+                  {thumbnailStatus === "failed" && (
+                    <div className="flex items-center gap-2 mt-2 text-xs text-yellow-400">
+                      <AlertCircle className="w-3 h-3" />
+                      Thumbnail generation failed — using video URL as fallback
+                    </div>
+                  )}
                 </div>
 
                 {/* Email Lookup */}
