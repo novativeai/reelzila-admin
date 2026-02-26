@@ -43,12 +43,20 @@ function formatIBAN(iban: string): string {
   return cleaned.replace(/(.{4})/g, '$1 ').trim();
 }
 
+// Module-level cache so navigating away and back is instant
+const payoutsCache: {
+  pending: PayoutRequest[] | null;
+  history: PayoutRequest[] | null;
+  timestamp: number;
+} = { pending: null, history: null, timestamp: 0 };
+const CACHE_TTL = 15 * 1000; // 15 seconds (short since page auto-refreshes)
+
 function PayoutsContent() {
   const { makeRequest } = useAdminApi();
   const { user } = useAuth();
-  const [pendingPayouts, setPendingPayouts] = useState<PayoutRequest[]>([]);
-  const [historyPayouts, setHistoryPayouts] = useState<PayoutRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [pendingPayouts, setPendingPayouts] = useState<PayoutRequest[]>(payoutsCache.pending ?? []);
+  const [historyPayouts, setHistoryPayouts] = useState<PayoutRequest[]>(payoutsCache.history ?? []);
+  const [isLoading, setIsLoading] = useState(!payoutsCache.pending);
   const [error, setError] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
@@ -65,9 +73,15 @@ function PayoutsContent() {
         makeRequest("/admin/payouts/queue"),
         makeRequest("/admin/payouts/history"),
       ]);
-      setPendingPayouts(pendingData.payouts || []);
-      setHistoryPayouts(historyData.payouts || []);
+      const pending = pendingData.payouts || [];
+      const history = historyData.payouts || [];
+      setPendingPayouts(pending);
+      setHistoryPayouts(history);
       setLastUpdated(new Date());
+      // Update cache
+      payoutsCache.pending = pending;
+      payoutsCache.history = history;
+      payoutsCache.timestamp = Date.now();
     } catch (error) {
       console.error("Failed to fetch payouts:", error);
       setError((error as Error).message);
@@ -77,6 +91,12 @@ function PayoutsContent() {
   }, [makeRequest, user]);
 
   useEffect(() => {
+    // Skip fetch if cache is fresh
+    if (payoutsCache.pending && payoutsCache.history && (Date.now() - payoutsCache.timestamp) < CACHE_TTL) {
+      setIsLoading(false);
+      setLastUpdated(new Date(payoutsCache.timestamp));
+      return;
+    }
     fetchPayouts();
   }, [fetchPayouts]);
 

@@ -34,11 +34,18 @@ interface SellersStats {
   suspended: number;
 }
 
+// Module-level cache so navigating away and back is instant
+const sellersCache: {
+  data: SellersStats | null;
+  timestamp: number;
+} = { data: null, timestamp: 0 };
+const CACHE_TTL = 30 * 1000; // 30 seconds
+
 function SellersContent() {
   const { makeRequest } = useAdminApi();
-  const [sellers, setSellers] = useState<Seller[]>([]);
-  const [stats, setStats] = useState<SellersStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [sellers, setSellers] = useState<Seller[]>(sellersCache.data?.sellers ?? []);
+  const [stats, setStats] = useState<SellersStats | null>(sellersCache.data);
+  const [isLoading, setIsLoading] = useState(!sellersCache.data);
   const [error, setError] = useState<string | null>(null);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [suspendReason, setSuspendReason] = useState<string>("");
@@ -52,6 +59,9 @@ function SellersContent() {
       const response = await makeRequest("/admin/sellers");
       setStats(response);
       setSellers(response.sellers || []);
+      // Update cache
+      sellersCache.data = response;
+      sellersCache.timestamp = Date.now();
     } catch (error) {
       console.error("Failed to fetch sellers:", error);
       setError((error as Error).message);
@@ -61,6 +71,11 @@ function SellersContent() {
   }, [makeRequest]);
 
   useEffect(() => {
+    // Skip fetch if cache is fresh
+    if (sellersCache.data && (Date.now() - sellersCache.timestamp) < CACHE_TTL) {
+      setIsLoading(false);
+      return;
+    }
     fetchSellers();
   }, [fetchSellers]);
 

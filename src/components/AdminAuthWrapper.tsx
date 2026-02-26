@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 
 interface AdminAuthWrapperProps {
   children: ReactNode;
@@ -19,26 +18,33 @@ export function clearAdminCache() {
   adminCache.clear();
 }
 
+// Check cache synchronously — avoids spinner flash on navigation
+function isCachedAdmin(uid: string | undefined): boolean {
+  if (!uid) return false;
+  const cached = adminCache.get(uid);
+  return !!cached && cached.verified && (Date.now() - cached.timestamp) < CACHE_TTL;
+}
+
 export const AdminAuthWrapper = ({ children }: AdminAuthWrapperProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(true);
-  const verifiedRef = useRef(false);
+
+  // If cache already confirms admin, skip the verifying state entirely
+  const cachedOnMount = isCachedAdmin(user?.uid);
+  const [isAdmin, setIsAdmin] = useState(cachedOnMount);
+  const [isVerifying, setIsVerifying] = useState(!cachedOnMount);
+  const verifiedRef = useRef(cachedOnMount);
 
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
+    if (authLoading) return;
 
     if (!user) {
       router.push("/login");
       return;
     }
 
-    // Check cache first — skip Firestore read if recently verified
-    const cached = adminCache.get(user.uid);
-    if (cached && cached.verified && (Date.now() - cached.timestamp) < CACHE_TTL) {
+    // Check cache — may have been set after mount
+    if (isCachedAdmin(user.uid)) {
       setIsAdmin(true);
       setIsVerifying(false);
       verifiedRef.current = true;
@@ -66,11 +72,11 @@ export const AdminAuthWrapper = ({ children }: AdminAuthWrapperProps) => {
     verifyAdmin();
   }, [user, authLoading, router]);
 
-  if (isVerifying || authLoading) {
+  // Only show loading on true cold start (no cache, first visit)
+  if (isVerifying && !cachedOnMount) {
     return (
-      <div className="bg-black text-white min-h-screen flex flex-col items-center justify-center">
-        <Loader2 className="animate-spin h-12 w-12" />
-        <p className="mt-4 text-neutral-400">Verifying administrator access...</p>
+      <div className="bg-black min-h-screen">
+        {/* Render nothing visible — page skeletons handle loading state */}
       </div>
     );
   }
