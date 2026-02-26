@@ -1,13 +1,15 @@
 "use client";
 
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAdminApi } from "@/hooks/useAdminApi";
+import { useAuth } from "@/context/AuthContext";
 import { Loader2, ArrowLeft, CheckCircle, XCircle, Clock, Euro, RefreshCw, Pause, Building2, Copy, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 interface FirestoreTimestamp {
   seconds: number;
@@ -43,45 +45,50 @@ function formatIBAN(iban: string): string {
 
 function PayoutsContent() {
   const { makeRequest } = useAdminApi();
+  const { user } = useAuth();
   const [pendingPayouts, setPendingPayouts] = useState<PayoutRequest[]>([]);
   const [historyPayouts, setHistoryPayouts] = useState<PayoutRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [copiedIban, setCopiedIban] = useState<string | null>(null);
-  const refreshInterval = 10000; // 10 seconds
 
-  const fetchPayouts = async () => {
+  const fetchPayouts = useCallback(async () => {
+    if (!user) return;
+    setError(null);
     try {
-      const pending = await makeRequest("/admin/payouts/queue");
-      const history = await makeRequest("/admin/payouts/history");
-      setPendingPayouts(pending.payouts || []);
-      setHistoryPayouts(history.payouts || []);
+      const [pendingData, historyData] = await Promise.all([
+        makeRequest("/admin/payouts/queue"),
+        makeRequest("/admin/payouts/history"),
+      ]);
+      setPendingPayouts(pendingData.payouts || []);
+      setHistoryPayouts(historyData.payouts || []);
       setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch payouts:", error);
+      setError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [makeRequest, user]);
 
   useEffect(() => {
     fetchPayouts();
-  }, []);
+  }, [fetchPayouts]);
 
-  // Auto-refresh polling
+  // Pause polling while an action is in-flight
+  const isActioning = approvingId !== null || rejectingId !== null || completingId !== null;
+
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || isActioning) return;
 
-    const interval = setInterval(() => {
-      fetchPayouts();
-    }, refreshInterval);
-
+    const interval = setInterval(fetchPayouts, 10000);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, isActioning, fetchPayouts]);
 
   const handleCopyIban = (iban: string, payoutId: string) => {
     navigator.clipboard.writeText(iban.replace(/\s/g, ''));
@@ -237,7 +244,7 @@ function PayoutsContent() {
             </h1>
           </div>
 
-          {/* Refresh Controls */}
+          {/* Controls */}
           <div className="flex items-center gap-2">
             <Button
               onClick={() => fetchPayouts()}
@@ -272,6 +279,7 @@ function PayoutsContent() {
                 </>
               )}
             </Button>
+            <AdminHeader />
           </div>
         </div>
 
@@ -313,6 +321,19 @@ function PayoutsContent() {
             </div>
           </div>
         </Card>
+
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-8 p-4 bg-red-900/20 border border-red-700 rounded-xl">
+            <p className="text-red-300 text-sm">{error}</p>
+            <button
+              onClick={() => fetchPayouts()}
+              className="mt-2 px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Pending Payouts Section */}
         <div className="mb-12">

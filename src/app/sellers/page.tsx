@@ -1,13 +1,14 @@
 "use client";
 
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { Loader2, ArrowLeft, CheckCircle, AlertCircle, Users, Ban, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 interface FirestoreTimestamp {
   seconds: number;
@@ -38,27 +39,30 @@ function SellersContent() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [stats, setStats] = useState<SellersStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [suspendReason, setSuspendReason] = useState<string>("");
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [selectedSellerId, setSelectedSellerId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "verified" | "unverified" | "suspended">("all");
 
-  const fetchSellers = async () => {
+  const fetchSellers = useCallback(async () => {
+    setError(null);
     try {
       const response = await makeRequest("/admin/sellers");
       setStats(response);
       setSellers(response.sellers || []);
     } catch (error) {
       console.error("Failed to fetch sellers:", error);
+      setError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [makeRequest]);
 
   useEffect(() => {
     fetchSellers();
-  }, []);
+  }, [fetchSellers]);
 
   const handleVerifySeller = async (userId: string) => {
     setActioningId(userId);
@@ -151,14 +155,30 @@ function SellersContent() {
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto py-16 px-4">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-12">
-          <Link href="/" className="hover:bg-neutral-800/50 p-2 rounded-lg transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">
-            Seller Management
-          </h1>
+        <div className="flex items-center justify-between gap-4 mb-12">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="hover:bg-neutral-800/50 p-2 rounded-lg transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">
+              Seller Management
+            </h1>
+          </div>
+          <AdminHeader />
         </div>
+
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-8 p-4 bg-red-900/20 border border-red-700 rounded-xl">
+            <p className="text-red-300 text-sm">{error}</p>
+            <button
+              onClick={() => fetchSellers()}
+              className="mt-2 px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
@@ -252,7 +272,7 @@ function SellersContent() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     {seller.status === "unverified" && (
                       <Button
                         onClick={() => handleVerifySeller(seller.userId)}

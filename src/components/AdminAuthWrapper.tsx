@@ -13,7 +13,11 @@ interface AdminAuthWrapperProps {
 
 // Cache admin status per user to avoid re-verifying on every page navigation
 const adminCache = new Map<string, { verified: boolean; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 60 * 1000; // 1 minute
+
+export function clearAdminCache() {
+  adminCache.clear();
+}
 
 export const AdminAuthWrapper = ({ children }: AdminAuthWrapperProps) => {
   const { user, loading: authLoading } = useAuth();

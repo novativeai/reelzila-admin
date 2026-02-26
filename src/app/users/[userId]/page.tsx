@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { EditTransactionPopup, TransactionData } from "@/components/admin/EditTransactionPopup";
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 import { DateInput } from "@/components/ui/date-input";
 import { generateTransactionPDF } from "@/lib/Generator";
 
@@ -167,11 +168,14 @@ function UserDetailContent() {
       />
       <div className="bg-black text-white min-h-screen">
         <div className="container mx-auto py-12 px-4 space-y-10">
-          <div className="flex items-center gap-4 mb-2">
-            <Link href="/" className="hover:bg-neutral-800/50 p-2 rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">{profile.name}</h1>
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <div className="flex items-center gap-4">
+              <Link href="/" className="hover:bg-neutral-800/50 p-2 rounded-lg transition-colors">
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+              <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">{profile.name}</h1>
+            </div>
+            <AdminHeader />
           </div>
           <div className="flex gap-4 ml-14 text-sm text-neutral-400">
             <span>{profile.credits ?? 0} credits</span>
@@ -312,10 +316,10 @@ function UserDetailContent() {
                 handleFormSubmit(e, 'Add Transaction', `/admin/transactions/${userId}`, 'POST', body);
                 setNewTransactionDate('');
             }} className="flex items-end gap-4 flex-wrap">
-              <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Date</label><DateInput name="date" value={newTransactionDate} onChange={setNewTransactionDate} className={inputStyles} required/></div>
-              <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Amount</label><Input name="amount" type="number" className={inputStyles} required/></div>
-              <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Type</label><Select name="type" defaultValue="Credit Purchase"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Credit Purchase">Credit Purchase</SelectItem><SelectItem value="Marketplace Purchase">Marketplace Purchase</SelectItem></SelectContent></Select></div>
-              <div className="grid gap-2 flex-grow"><label className="text-sm text-neutral-400 font-medium">Status</label><Select name="status" defaultValue="paid"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent></Select></div>
+              <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Date</label><DateInput name="date" value={newTransactionDate} onChange={setNewTransactionDate} className={inputStyles} required/></div>
+              <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Amount</label><Input name="amount" type="number" className={inputStyles} required/></div>
+              <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Type</label><Select name="type" defaultValue="Credit Purchase"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Credit Purchase">Credit Purchase</SelectItem><SelectItem value="Marketplace Purchase">Marketplace Purchase</SelectItem></SelectContent></Select></div>
+              <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Status</label><Select name="status" defaultValue="paid"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent></Select></div>
               <PlusButton isLoading={isSubmitting === 'Add Transaction'} />
             </form>
           </div>

@@ -36,6 +36,7 @@ import Link from "next/link";
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/context/AuthContext";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://aivideogenerator-production.up.railway.app";
 
@@ -543,6 +544,7 @@ function MarketplaceContent() {
               Manage marketplace products, listings, and content
             </p>
           </div>
+          <AdminHeader />
         </div>
 
         {/* Tabs */}

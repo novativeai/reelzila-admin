@@ -1,8 +1,9 @@
 "use client";
 
-import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
-import { useEffect, useState, useRef, FormEvent } from "react";
+import { AdminAuthWrapper, clearAdminCache } from "@/components/AdminAuthWrapper";
+import { useEffect, useState, useRef, useCallback, FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { useAdminApi } from "@/hooks/useAdminApi";
 import { Loader2, LogOut, RefreshCw } from "lucide-react";
@@ -42,6 +43,7 @@ const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
 function DashboardContent() {
   const { makeRequest } = useAdminApi();
   const { logout } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState<StatsData>(dataCache.stats ?? { userCount: 0 });
   const [users, setUsers] = useState<UserRecord[]>(dataCache.users ?? []);
   const [isLoading, setIsLoading] = useState(!dataCache.stats);
@@ -52,23 +54,34 @@ function DashboardContent() {
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  const fetchData = async (isRefresh = false) => {
+  const fetchData = useCallback(async (isRefresh = false) => {
     setError(null);
     if (isRefresh) setIsRefreshing(true);
     try {
       if (!apiBaseUrl) {
         throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured. Please set this environment variable in Vercel.");
       }
-      const [statsData, usersData] = await Promise.all([
+      const [statsResult, usersResult] = await Promise.allSettled([
         makeRequest('/admin/stats'),
         makeRequest('/admin/users'),
       ]);
-      setStats(statsData);
-      setUsers(usersData);
-      // Update cache
-      dataCache.stats = statsData;
-      dataCache.users = usersData;
-      dataCache.timestamp = Date.now();
+
+      if (statsResult.status === 'fulfilled') {
+        setStats(statsResult.value);
+        dataCache.stats = statsResult.value;
+      }
+      if (usersResult.status === 'fulfilled') {
+        setUsers(usersResult.value);
+        dataCache.users = usersResult.value;
+      }
+
+      const failures = [statsResult, usersResult].filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        const messages = failures.map(f => (f as PromiseRejectedResult).reason?.message);
+        setError(`Failed to load: ${messages.join('; ')}`);
+      } else {
+        dataCache.timestamp = Date.now();
+      }
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
       setError((error as Error).message);
@@ -76,7 +89,7 @@ function DashboardContent() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [makeRequest, apiBaseUrl]);
 
   useEffect(() => {
     if (fetchedRef.current) return;
@@ -91,7 +104,7 @@ function DashboardContent() {
     }
 
     fetchData();
-  }, [makeRequest]);
+  }, [fetchData]);
 
   const handleCreateUser = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -116,11 +129,13 @@ function DashboardContent() {
   };
 
   const handleLogout = async () => {
-    // Clear caches
+    // Clear all caches before signing out
     dataCache.stats = null;
     dataCache.users = null;
     dataCache.timestamp = 0;
+    clearAdminCache();
     await logout();
+    router.push("/login");
   };
 
   const inputStyles = "bg-transparent border-0 border-b border-neutral-700 rounded-none px-0 focus-visible:ring-0";
