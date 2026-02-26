@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut, User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
@@ -11,6 +11,7 @@ interface AuthContextType {
   credits: number;
   setCredits: (credits: number) => void;
   getIdToken: () => Promise<string>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,7 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user.getIdToken();
   }, [user]);
 
-  const value = { user, loading, credits, setCredits, getIdToken };
+  const logout = useCallback(async () => {
+    await firebaseSignOut(auth);
+  }, []);
+
+  const value = { user, loading, credits, setCredits, getIdToken, logout };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

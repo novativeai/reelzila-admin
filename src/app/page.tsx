@@ -1,22 +1,36 @@
 "use client";
 
 import { AdminAuthWrapper } from "@/components/AdminAuthWrapper";
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, useRef, FormEvent } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useAdminApi } from "@/hooks/useAdminApi";
-import { Loader2 } from "lucide-react";
+import { Loader2, LogOut, RefreshCw } from "lucide-react";
 import { CsvUpload } from "@/components/admin/CsvUpload";
 import { Separator } from "@/components/ui/separator";
-
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/context/AuthContext";
 
 interface UserRecord {
   id: string;
   email: string;
+  displayName?: string;
   credits: number;
   isAdmin?: boolean;
   generationCount?: number;
 }
+
+interface StatsData {
+  userCount: number;
+}
+
+// Module-level cache so data persists across navigation
+const dataCache: { stats: StatsData | null; users: UserRecord[] | null; timestamp: number } = {
+  stats: null,
+  users: null,
+  timestamp: 0,
+};
+const CACHE_TTL = 60 * 1000; // 1 minute
 
 const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
   <button type="submit" className="bg-yellow-300 text-black rounded-full w-8 h-8 flex items-center justify-center font-bold text-2xl hover:bg-yellow-400 transition-colors disabled:bg-neutral-500" disabled={isLoading}>
@@ -27,33 +41,55 @@ const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
 
 function DashboardContent() {
   const { makeRequest } = useAdminApi();
-  const [stats, setStats] = useState({ userCount: 0 });
-  const [users, setUsers] = useState<UserRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { logout } = useAuth();
+  const [stats, setStats] = useState<StatsData>(dataCache.stats ?? { userCount: 0 });
+  const [users, setUsers] = useState<UserRecord[]>(dataCache.users ?? []);
+  const [isLoading, setIsLoading] = useState(!dataCache.stats);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  const fetchData = async () => {
+  const fetchData = async (isRefresh = false) => {
     setError(null);
+    if (isRefresh) setIsRefreshing(true);
     try {
       if (!apiBaseUrl) {
         throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured. Please set this environment variable in Vercel.");
       }
-      const statsData = await makeRequest('/admin/stats');
-      const usersData = await makeRequest('/admin/users');
+      const [statsData, usersData] = await Promise.all([
+        makeRequest('/admin/stats'),
+        makeRequest('/admin/users'),
+      ]);
       setStats(statsData);
       setUsers(usersData);
+      // Update cache
+      dataCache.stats = statsData;
+      dataCache.users = usersData;
+      dataCache.timestamp = Date.now();
     } catch (error) {
       console.error("Failed to fetch admin data:", error);
       setError((error as Error).message);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
-  
+
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    // If cache is fresh, skip fetch
+    if (dataCache.stats && dataCache.users && (Date.now() - dataCache.timestamp) < CACHE_TTL) {
+      setStats(dataCache.stats);
+      setUsers(dataCache.users);
+      setIsLoading(false);
+      return;
+    }
+
     fetchData();
   }, [makeRequest]);
 
@@ -71,7 +107,7 @@ function DashboardContent() {
         });
         alert('User created!');
         form.reset();
-        fetchData();
+        fetchData(true);
     } catch (error) {
         alert(`Failed to create user: ${(error as Error).message}`);
     } finally {
@@ -79,36 +115,15 @@ function DashboardContent() {
     }
   };
 
+  const handleLogout = async () => {
+    // Clear caches
+    dataCache.stats = null;
+    dataCache.users = null;
+    dataCache.timestamp = 0;
+    await logout();
+  };
+
   const inputStyles = "bg-transparent border-0 border-b border-neutral-700 rounded-none px-0 focus-visible:ring-0";
-
-  if (isLoading) {
-    return (
-        <div className="bg-black text-white min-h-screen flex items-center justify-center">
-            <Loader2 className="animate-spin h-10 w-10" />
-        </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-black text-white min-h-screen flex items-center justify-center">
-        <div className="max-w-md text-center p-8 bg-red-900/20 border border-red-700 rounded-xl">
-          <h2 className="text-xl font-bold text-red-400 mb-4">Configuration Error</h2>
-          <p className="text-red-300 mb-4">{error}</p>
-          <div className="text-left bg-black/50 p-4 rounded-lg text-xs font-mono">
-            <p className="text-neutral-400 mb-2">API Base URL:</p>
-            <p className="text-yellow-400">{apiBaseUrl || "NOT SET"}</p>
-          </div>
-          <button
-            onClick={() => fetchData()}
-            className="mt-6 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-black text-white min-h-screen">
@@ -116,7 +131,7 @@ function DashboardContent() {
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-white">Admin Dashboard</h1>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <Link href="/payouts" className="px-4 py-2 bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700/50 transition-colors">
               Seller Payouts
             </Link>
@@ -126,39 +141,95 @@ function DashboardContent() {
             <Link href="/marketplace" className="px-4 py-2 bg-neutral-800/50 hover:bg-neutral-700/50 text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700/50 transition-colors">
               Marketplace
             </Link>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-900/30 hover:bg-red-800/50 text-red-300 text-sm font-medium rounded-lg border border-red-800/50 transition-colors flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
           </div>
         </div>
 
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-8 p-4 bg-red-900/20 border border-red-700 rounded-xl">
+            <p className="text-red-300 text-sm">{error}</p>
+            <button
+              onClick={() => fetchData(true)}
+              className="mt-2 px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-xs"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Stats Card */}
         <div className="text-center mb-12 p-8 rounded-xl bg-neutral-900/50 border border-neutral-800/50">
-            <p className="text-neutral-500 mb-2 text-xs uppercase tracking-widest">Total Users</p>
+          <p className="text-neutral-500 mb-2 text-xs uppercase tracking-widest">Total Users</p>
+          {isLoading ? (
+            <Skeleton className="h-12 w-24 mx-auto bg-neutral-800" />
+          ) : (
             <p className="text-5xl font-semibold text-white">{stats.userCount}</p>
+          )}
         </div>
 
         {/* User List */}
         <div className="max-w-4xl mx-auto space-y-4 mb-12">
-            <h2 className="text-lg font-medium mb-4 text-neutral-300">User List</h2>
-            <div className="space-y-2">
-              {users.map((u) => (
-                  <Link key={u.id} href={`/users/${u.id}`}>
-                      <div className="border border-neutral-800/50 rounded-lg p-4 flex justify-between items-center hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all cursor-pointer group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center font-medium text-neutral-300 text-sm">
-                              {u.email ? u.email.charAt(0).toUpperCase() : '?'}
-                            </div>
-                            <p className="font-medium text-sm text-neutral-200">{u.email || "No Email Provided"}</p>
-                          </div>
-                          <div className="text-right">
-                              <p className="text-sm text-neutral-400">{u.credits} credits</p>
-                              <p className="text-xs text-neutral-600">{u.generationCount} generations</p>
-                          </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-neutral-300">User List</h2>
+            <button
+              onClick={() => fetchData(true)}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs text-neutral-400 hover:text-white bg-neutral-800/50 hover:bg-neutral-700/50 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3 h-3 ${isRefreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          </div>
+          <div className="space-y-2">
+            {isLoading ? (
+              // Skeleton placeholders
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="border border-neutral-800/50 rounded-lg p-4 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-8 h-8 rounded-full bg-neutral-800" />
+                    <Skeleton className="h-4 w-48 bg-neutral-800" />
+                  </div>
+                  <div className="text-right space-y-1">
+                    <Skeleton className="h-4 w-20 bg-neutral-800 ml-auto" />
+                    <Skeleton className="h-3 w-16 bg-neutral-800 ml-auto" />
+                  </div>
+                </div>
+              ))
+            ) : (
+              users.map((u) => (
+                <Link key={u.id} href={`/users/${u.id}`}>
+                  <div className="border border-neutral-800/50 rounded-lg p-4 flex justify-between items-center hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center font-medium text-neutral-300 text-sm">
+                        {u.email ? u.email.charAt(0).toUpperCase() : '?'}
                       </div>
-                  </Link>
-              ))}
-            </div>
-            <div className="text-center pt-4">
-                <button className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">See more</button>
-            </div>
+                      <div>
+                        {u.displayName && (
+                          <p className="font-medium text-sm text-neutral-200">{u.displayName}</p>
+                        )}
+                        <p className={`text-sm ${u.displayName ? "text-neutral-500" : "font-medium text-neutral-200"}`}>
+                          {u.email || "No Email Provided"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-neutral-400">{u.credits} credits</p>
+                      {u.generationCount != null && (
+                        <p className="text-xs text-neutral-600">{u.generationCount} generations</p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
         </div>
 
         <Separator className="my-12 bg-neutral-800/50" />
@@ -170,14 +241,14 @@ function DashboardContent() {
 
         {/* Create Account */}
         <div className="max-w-4xl mx-auto">
-             <h2 className="text-lg font-medium mb-4 text-neutral-300">Create Account</h2>
-             <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
-               <form onSubmit={handleCreateUser} className="flex items-end gap-6">
-                  <div className="grid gap-2 w-full"><label className="text-xs text-neutral-500 font-medium">Mail</label><Input name="email" placeholder="eg: john.smith@gmail.com" className={inputStyles} required/></div>
-                  <div className="grid gap-2 w-full"><label className="text-xs text-neutral-500 font-medium">Password</label><Input name="password" type="password" placeholder="********" className={inputStyles} required/></div>
-                  <PlusButton isLoading={isCreating} />
-               </form>
-             </div>
+          <h2 className="text-lg font-medium mb-4 text-neutral-300">Create Account</h2>
+          <div className="border border-neutral-800/50 rounded-xl p-6 bg-neutral-900/50">
+            <form onSubmit={handleCreateUser} className="flex items-end gap-6">
+              <div className="grid gap-2 w-full"><label className="text-xs text-neutral-500 font-medium">Mail</label><Input name="email" placeholder="eg: john.smith@gmail.com" className={inputStyles} required/></div>
+              <div className="grid gap-2 w-full"><label className="text-xs text-neutral-500 font-medium">Password</label><Input name="password" type="password" placeholder="********" className={inputStyles} required/></div>
+              <PlusButton isLoading={isCreating} />
+            </form>
+          </div>
         </div>
       </div>
     </div>

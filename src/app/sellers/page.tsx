@@ -7,6 +7,7 @@ import { useAdminApi } from "@/hooks/useAdminApi";
 import { Loader2, ArrowLeft, CheckCircle, AlertCircle, Users, Ban, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FirestoreTimestamp {
   seconds: number;
@@ -146,14 +147,6 @@ function SellersContent() {
     return seller.status === filter;
   });
 
-  if (isLoading) {
-    return (
-      <div className="bg-black text-white min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin h-10 w-10" />
-      </div>
-    );
-  }
-
   return (
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto py-16 px-4">
@@ -168,35 +161,41 @@ function SellersContent() {
         </div>
 
         {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
-              <p className="text-xs text-neutral-500 mb-2">Total Sellers</p>
-              <p className="text-2xl font-semibold text-white">{stats.count}</p>
-            </Card>
-            <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
-              <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
-                <CheckCircle className="w-3 h-3 text-green-500/70" />
-                Verified
-              </p>
-              <p className="text-2xl font-semibold text-neutral-200">{stats.verified}</p>
-            </Card>
-            <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
-              <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
-                <AlertCircle className="w-3 h-3 text-yellow-500/70" />
-                Unverified
-              </p>
-              <p className="text-2xl font-semibold text-neutral-200">{stats.unverified}</p>
-            </Card>
-            <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
-              <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
-                <Ban className="w-3 h-3 text-red-500/70" />
-                Suspended
-              </p>
-              <p className="text-2xl font-semibold text-neutral-200">{stats.suspended}</p>
-            </Card>
-          </div>
-        )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+          <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
+            <p className="text-xs text-neutral-500 mb-2">Total Sellers</p>
+            {isLoading ? <Skeleton className="h-8 w-12 bg-neutral-800" /> : (
+              <p className="text-2xl font-semibold text-white">{stats?.count ?? 0}</p>
+            )}
+          </Card>
+          <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
+            <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
+              <CheckCircle className="w-3 h-3 text-green-500/70" />
+              Verified
+            </p>
+            {isLoading ? <Skeleton className="h-8 w-12 bg-neutral-800" /> : (
+              <p className="text-2xl font-semibold text-neutral-200">{stats?.verified ?? 0}</p>
+            )}
+          </Card>
+          <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
+            <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
+              <AlertCircle className="w-3 h-3 text-yellow-500/70" />
+              Unverified
+            </p>
+            {isLoading ? <Skeleton className="h-8 w-12 bg-neutral-800" /> : (
+              <p className="text-2xl font-semibold text-neutral-200">{stats?.unverified ?? 0}</p>
+            )}
+          </Card>
+          <Card className="p-5 border-neutral-800/50 bg-neutral-900/50">
+            <p className="text-xs text-neutral-500 mb-2 flex items-center gap-2">
+              <Ban className="w-3 h-3 text-red-500/70" />
+              Suspended
+            </p>
+            {isLoading ? <Skeleton className="h-8 w-12 bg-neutral-800" /> : (
+              <p className="text-2xl font-semibold text-neutral-200">{stats?.suspended ?? 0}</p>
+            )}
+          </Card>
+        </div>
 
         {/* Filter Buttons */}
         <div className="flex gap-2 mb-8 flex-wrap">
@@ -214,7 +213,19 @@ function SellersContent() {
 
         {/* Sellers List */}
         <div className="space-y-3">
-          {filteredSellers.length === 0 ? (
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="p-5 border-neutral-800/50 bg-neutral-900/30">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-40 bg-neutral-800" />
+                    <Skeleton className="h-4 w-56 bg-neutral-800" />
+                  </div>
+                  <Skeleton className="h-9 w-20 bg-neutral-800" />
+                </div>
+              </Card>
+            ))
+          ) : filteredSellers.length === 0 ? (
             <Card className="p-10 text-center border-neutral-800/50 bg-neutral-900/30">
               <Users className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
               <p className="text-neutral-500 text-sm">No sellers found</p>

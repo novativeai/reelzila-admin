@@ -7,6 +7,7 @@ import { useAdminApi } from "@/hooks/useAdminApi";
 import { Loader2, ArrowLeft, CheckCircle, XCircle, Clock, Euro, RefreshCw, Pause, Building2, Copy, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FirestoreTimestamp {
   seconds: number;
@@ -222,14 +223,6 @@ function PayoutsContent() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="bg-black text-white min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin h-10 w-10" />
-      </div>
-    );
-  }
-
   return (
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto py-16 px-4">
@@ -308,7 +301,7 @@ function PayoutsContent() {
         {/* Instructions */}
         <Card className="mb-8 p-4 border-blue-700/50 bg-blue-900/20">
           <div className="flex items-start gap-3">
-            <Building2 className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <Building2 className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-blue-200 font-medium mb-1">Bank Transfer Workflow</p>
               <p className="text-xs text-blue-200/70">
@@ -327,11 +320,26 @@ function PayoutsContent() {
             <Clock className="w-5 h-5 text-neutral-400" />
             <h2 className="text-xl font-semibold text-white">Pending Approval</h2>
             <span className="ml-auto px-3 py-1 bg-neutral-800/50 text-neutral-300 rounded-full text-sm font-medium">
-              {pendingPayouts.length}
+              {isLoading ? "..." : pendingPayouts.length}
             </span>
           </div>
 
-          {pendingPayouts.length === 0 ? (
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <Card key={i} className="p-5 border-neutral-800/50 bg-neutral-900/30">
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="flex-1 space-y-3">
+                      <Skeleton className="h-5 w-48 bg-neutral-800" />
+                      <Skeleton className="h-4 w-64 bg-neutral-800" />
+                      <Skeleton className="h-4 w-32 bg-neutral-800" />
+                    </div>
+                    <Skeleton className="h-9 w-24 bg-neutral-800" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : pendingPayouts.length === 0 ? (
             <Card className="p-10 text-center border-neutral-800/50 bg-neutral-900/30">
               <Euro className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
               <p className="text-neutral-500 text-sm">No pending payouts</p>
