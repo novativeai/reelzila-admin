@@ -41,7 +41,7 @@ interface Transaction {
   createdAt: string;
   amount: number;
   type: string;
-  status: 'paid' | 'pending' | 'failed';
+  status: 'paid' | 'pending' | 'failed' | 'cancelled';
 }
 
 interface Generation {
@@ -120,6 +120,7 @@ function UserDetailContent() {
       const data = await makeRequest(`/admin/users/${userId}`);
       setProfile(data.profile);
       setTransactions(data.transactions);
+      setTxPage(1);
     } catch (error) { console.error(error); }
     finally { setIsLoading(false); }
   }, [userId, makeRequest]);
@@ -130,6 +131,7 @@ function UserDetailContent() {
     try {
       const data = await makeRequest(`/admin/users/${userId}/generations`);
       setGenerations(data.generations || []);
+      setGenPage(1);
     } catch (error) { console.error("Failed to fetch generations:", error); }
     finally { setGenerationsLoading(false); }
   }, [userId, makeRequest]);
@@ -199,7 +201,12 @@ function UserDetailContent() {
     if(!confirm('Are you sure you want to delete this transaction?')) return;
     try {
         await makeRequest(`/admin/transactions/${userId}/${transId}`, { method: 'DELETE' });
-        setTransactions(prev => prev.filter(t => t.id !== transId));
+        setTransactions(prev => {
+          const updated = prev.filter(t => t.id !== transId);
+          const maxPage = Math.max(1, Math.ceil(updated.length / ITEMS_PER_PAGE));
+          if (txPage > maxPage) setTxPage(maxPage);
+          return updated;
+        });
     } catch (error) {
         alert(`Failed to delete transaction: ${(error as Error).message}`);
     }
@@ -389,13 +396,30 @@ function UserDetailContent() {
                       <div className="flex gap-0">
                         {/* Thumbnail */}
                         <div className="relative w-28 h-[100px] shrink-0 bg-neutral-800 overflow-hidden">
-                          {gen.thumbnailUrl || (gen.outputType === "image" && gen.outputUrl) ? (
+                          {gen.thumbnailUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={gen.thumbnailUrl || gen.outputUrl}
+                              src={gen.thumbnailUrl}
                               alt=""
                               className="w-full h-full object-cover"
                             />
+                          ) : gen.outputUrl ? (
+                            gen.outputType === "video" ? (
+                              <video
+                                src={gen.outputUrl}
+                                muted
+                                playsInline
+                                preload="metadata"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={gen.outputUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            )
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               {gen.outputType === "video" ? (
@@ -488,7 +512,7 @@ function UserDetailContent() {
                       <p className="col-span-2 text-neutral-400 font-medium">{t.createdAt}</p>
                       <div className="col-span-2">
                         <p className="text-lg font-semibold mb-1">{t.amount.toFixed(2)} &euro; <span className="text-neutral-400 font-normal text-sm">{t.type}</span></p>
-                        <Badge variant={t.status === 'paid' ? 'default' : 'secondary'} className={t.status === 'paid' ? 'bg-green-900 text-green-200 hover:bg-green-800' : t.status === 'pending' ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800' : 'bg-red-900 text-red-200 hover:bg-red-800'}>{t.status}</Badge>
+                        <Badge variant={t.status === 'paid' ? 'default' : 'secondary'} className={t.status === 'paid' ? 'bg-green-900 text-green-200 hover:bg-green-800' : t.status === 'pending' ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800' : t.status === 'cancelled' ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700' : 'bg-red-900 text-red-200 hover:bg-red-800'}>{t.status}</Badge>
 
                         <button
                             onClick={() => {
@@ -546,7 +570,7 @@ function UserDetailContent() {
               <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Date</label><DateInput name="date" value={newTransactionDate} onChange={setNewTransactionDate} className={inputStyles} required/></div>
               <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Amount</label><Input name="amount" type="number" className={inputStyles} required/></div>
               <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Type</label><Select name="type" defaultValue="Credit Purchase"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Credit Purchase">Credit Purchase</SelectItem><SelectItem value="Marketplace Purchase">Marketplace Purchase</SelectItem></SelectContent></Select></div>
-              <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Status</label><Select name="status" defaultValue="paid"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent></Select></div>
+              <div className="grid gap-2 grow"><label className="text-sm text-neutral-400 font-medium">Status</label><Select name="status" defaultValue="paid"><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent></Select></div>
               <PlusButton isLoading={isSubmitting === 'Add Transaction'} />
             </form>
           </div>

@@ -18,7 +18,7 @@ interface UserRecord {
   email: string;
   displayName?: string;
   credits: number;
-  isAdmin?: boolean;
+  createdAt?: string;
   generationCount?: number;
 }
 

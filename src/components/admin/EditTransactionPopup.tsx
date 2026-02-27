@@ -14,8 +14,8 @@ export interface TransactionData {
   date: string;
   amount: number;
   type: string;
-  status: 'paid' | 'pending' | 'failed';
-  createdAt?: string; 
+  status: 'paid' | 'pending' | 'failed' | 'cancelled';
+  createdAt?: string;
 }
 
 interface EditTransactionPopupProps {
@@ -61,7 +61,7 @@ export const EditTransactionPopup: React.FC<EditTransactionPopupProps> = ({ isOp
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2"><Label>Type</Label><Select value={data.type} onValueChange={(v) => handleSelectChange('type', v)}><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Credit Purchase">Credit Purchase</SelectItem><SelectItem value="Marketplace Purchase">Marketplace Purchase</SelectItem></SelectContent></Select></div>
-                <div className="grid gap-2"><Label>Status</Label><Select value={data.status} onValueChange={(v) => handleSelectChange('status', v)}><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent></Select></div>
+                <div className="grid gap-2"><Label>Status</Label><Select value={data.status} onValueChange={(v) => handleSelectChange('status', v)}><SelectTrigger className={inputStyles}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="paid">Paid</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="failed">Failed</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent></Select></div>
             </div>
           <Button type="submit" className="w-full bg-yellow-300 text-black font-bold hover:bg-yellow-400" disabled={isProcessing}>
             {isProcessing ? <Loader2 className="animate-spin" /> : "Save Changes"}
