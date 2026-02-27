@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, FormEvent } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, FormEvent } from "react";
 import { useParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -86,6 +86,77 @@ function formatRelativeDate(isoString: string): string {
   if (diffDays < 7) return `${diffDays}d ago`;
 
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// Canvas-capture video thumbnail — works on Safari + Chrome
+function VideoThumbnail({ src }: { src: string }) {
+  const [poster, setPoster] = useState<string | null>(null);
+  const attempted = useRef(false);
+
+  useEffect(() => {
+    if (attempted.current) return;
+    attempted.current = true;
+
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = "anonymous";
+    video.preload = "auto";
+    video.src = src;
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("loadedmetadata", onMeta);
+      video.removeEventListener("error", onError);
+      video.src = "";
+      video.remove();
+    };
+
+    const onSeeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          if (dataUrl.length > 3000) setPoster(dataUrl);
+        }
+      } catch {
+        // CORS — try without crossOrigin
+      }
+      cleanup();
+    };
+
+    const onMeta = () => {
+      video.currentTime = Math.min(0.5, video.duration * 0.1);
+    };
+
+    const onError = () => cleanup();
+
+    video.addEventListener("loadedmetadata", onMeta);
+    video.addEventListener("seeked", onSeeked);
+    video.addEventListener("error", onError);
+    video.load();
+
+    const timeout = setTimeout(cleanup, 5000);
+    return () => { clearTimeout(timeout); cleanup(); };
+  }, [src]);
+
+  if (poster) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={poster} alt="" className="w-full h-full object-cover" />;
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <Play className="w-6 h-6 text-neutral-600" />
+    </div>
+  );
 }
 
 const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
@@ -403,30 +474,18 @@ function UserDetailContent() {
                               alt=""
                               className="w-full h-full object-cover"
                             />
+                          ) : gen.outputType === "video" && gen.outputUrl ? (
+                            <VideoThumbnail src={gen.outputUrl} />
                           ) : gen.outputUrl ? (
-                            gen.outputType === "video" ? (
-                              <video
-                                src={`${gen.outputUrl}#t=0.5`}
-                                muted
-                                playsInline
-                                preload="auto"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={gen.outputUrl}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            )
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={gen.outputUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              {gen.outputType === "video" ? (
-                                <Play className="w-6 h-6 text-neutral-600" />
-                              ) : (
-                                <Image className="w-6 h-6 text-neutral-600" />
-                              )}
+                              <Image className="w-6 h-6 text-neutral-600" />
                             </div>
                           )}
                           {/* Type badge */}
