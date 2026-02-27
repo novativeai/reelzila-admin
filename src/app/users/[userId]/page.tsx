@@ -406,10 +406,10 @@ function UserDetailContent() {
                           ) : gen.outputUrl ? (
                             gen.outputType === "video" ? (
                               <video
-                                src={gen.outputUrl}
+                                src={`${gen.outputUrl}#t=0.5`}
                                 muted
                                 playsInline
-                                preload="metadata"
+                                preload="auto"
                                 className="w-full h-full object-cover"
                               />
                             ) : (
