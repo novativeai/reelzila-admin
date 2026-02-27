@@ -1,15 +1,16 @@
 "use client";
 
 import { AdminAuthWrapper, clearAdminCache } from "@/components/AdminAuthWrapper";
-import { useEffect, useState, useRef, useCallback, FormEvent } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { useAdminApi } from "@/hooks/useAdminApi";
-import { Loader2, LogOut, RefreshCw } from "lucide-react";
+import { Loader2, LogOut, RefreshCw, Search, X } from "lucide-react";
 import { CsvUpload } from "@/components/admin/CsvUpload";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/admin/Pagination";
 import { useAuth } from "@/context/AuthContext";
 
 interface UserRecord {
@@ -32,6 +33,7 @@ const dataCache: { stats: StatsData | null; users: UserRecord[] | null; timestam
   timestamp: 0,
 };
 const CACHE_TTL = 60 * 1000; // 1 minute
+const USERS_PER_PAGE = 10;
 
 const PlusButton = ({ isLoading }: { isLoading?: boolean }) => (
   <button type="submit" className="bg-yellow-300 text-black rounded-full w-8 h-8 flex items-center justify-center font-bold text-2xl hover:bg-yellow-400 transition-colors disabled:bg-neutral-500" disabled={isLoading}>
@@ -51,6 +53,11 @@ function DashboardContent() {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fetchedRef = useRef(false);
+
+  // Search & Pagination
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -105,6 +112,29 @@ function DashboardContent() {
 
     fetchData();
   }, [fetchData]);
+
+  // Filtered users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    const q = searchQuery.toLowerCase();
+    return users.filter(u =>
+      u.email?.toLowerCase().includes(q) ||
+      u.displayName?.toLowerCase().includes(q) ||
+      u.id.toLowerCase().includes(q)
+    );
+  }, [users, searchQuery]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * USERS_PER_PAGE;
+    return filteredUsers.slice(start, start + USERS_PER_PAGE);
+  }, [filteredUsers, currentPage]);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const handleCreateUser = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -191,17 +221,50 @@ function DashboardContent() {
 
         {/* User List */}
         <div className="max-w-4xl mx-auto space-y-4 mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-neutral-300">User List</h2>
+          <div className="flex items-center justify-between mb-4 gap-4">
+            <h2 className="text-lg font-medium text-neutral-300 shrink-0">User List</h2>
+
+            {/* Search Bar */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, email, or ID..."
+                className="w-full pl-9 pr-8 py-2 bg-neutral-900/50 border border-neutral-800/50 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-600 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-neutral-800 transition-colors"
+                >
+                  <X className="w-3 h-3 text-neutral-500" />
+                </button>
+              )}
+            </div>
+
             <button
               onClick={() => fetchData(true)}
               disabled={isRefreshing}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs text-neutral-400 hover:text-white bg-neutral-800/50 hover:bg-neutral-700/50 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-2 text-xs text-neutral-400 hover:text-white bg-neutral-800/50 hover:bg-neutral-700/50 rounded-lg transition-colors disabled:opacity-50 shrink-0"
             >
               <RefreshCw className={`w-3 h-3 ${isRefreshing ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
+
+          {/* Search result count */}
+          {searchQuery && !isLoading && (
+            <p className="text-xs text-neutral-500">
+              {filteredUsers.length} result{filteredUsers.length !== 1 ? "s" : ""} for &ldquo;{searchQuery}&rdquo;
+            </p>
+          )}
+
           <div className="space-y-2">
             {isLoading ? (
               // Skeleton placeholders
@@ -217,8 +280,14 @@ function DashboardContent() {
                   </div>
                 </div>
               ))
+            ) : paginatedUsers.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-neutral-500 text-sm">
+                  {searchQuery ? "No users match your search." : "No users found."}
+                </p>
+              </div>
             ) : (
-              users.map((u) => (
+              paginatedUsers.map((u) => (
                 <Link key={u.id} href={`/users/${u.id}`}>
                   <div className="border border-neutral-800/50 rounded-lg p-4 flex justify-between items-center hover:bg-neutral-900/50 hover:border-neutral-700/50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-3">
@@ -245,6 +314,17 @@ function DashboardContent() {
               ))
             )}
           </div>
+
+          {/* Pagination */}
+          {!isLoading && filteredUsers.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredUsers.length}
+              itemsPerPage={USERS_PER_PAGE}
+            />
+          )}
         </div>
 
         <Separator className="my-12 bg-neutral-800/50" />
